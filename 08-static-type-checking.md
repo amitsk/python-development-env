@@ -209,29 +209,18 @@ pyright
 **Pros:** Type inference without annotations
 **Cons:** Slower, Linux/macOS only
 
-## Deep Dive: mypy
+## mypy
 
-mypy is the most widely used type checker. Let's explore it in detail.
+mypy is the most widely used type checker, created by the inventor of Python type hints.
 
-### Installing mypy
+### Installing and Using mypy
 
 ```bash
 # Using uv
 uv pip install mypy
 
-# Verify
-mypy --version
-```
-
-### Basic Usage
-
-```bash
 # Check all Python files
 mypy .
-
-# Check specific files or directories
-mypy src/
-mypy script.py
 
 # Strict mode (recommended for new projects)
 mypy --strict .
@@ -240,30 +229,16 @@ mypy --strict .
 mypy --show-error-codes .
 ```
 
-### Configuration
+### Basic Configuration
 
-Create a `myproject.toml` configuration:
+Create a `pyproject.toml` configuration:
 
 ```toml
 [tool.mypy]
-# Basic options
 python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
-
-# Strictness options
 disallow_untyped_defs = true
-disallow_any_unimported = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_unreachable = true
-
-# Import discovery
-mypy_path = "src"
-packages = ["mypackage"]
-
-# Output
 show_error_codes = true
 pretty = true
 
@@ -273,136 +248,162 @@ module = "tests.*"
 disallow_untyped_defs = false
 ```
 
-### Common mypy Errors and Fixes
-
-#### Error: Function is missing a type annotation
+### Common mypy Errors
 
 ```python
-# Error
-def process(data):
+# Error: Function is missing a type annotation
+def process(data):  # Error
     return data.upper()
 
-# Fix
-def process(data: str) -> str:
+def process(data: str) -> str:  # Fix
     return data.upper()
-```
 
-#### Error: Incompatible return value type
-
-```python
-# Error
+# Error: Incompatible return value type
 def get_age() -> int:
     return "25"  # Error: Expected int, got str
 
-# Fix
 def get_age() -> int:
-    return 25
+    return 25  # Fix
 ```
 
-#### Error: Argument has incompatible type
+## ty: The Fast Type Checker
 
+[ty](https://github.com/astral-sh/ty) is a new Python type checker from Astral (the team behind uv and Ruff), written in Rust for exceptional performance.
+
+### Why ty?
+
+**Blazing Fast:**
+- 10-100x faster than mypy and Pyright
+- Optimized for IDE responsiveness with fine-grained incremental analysis
+
+**Developer-Friendly:**
+- Comprehensive diagnostics with rich contextual information
+- Configurable rule levels and per-file overrides
+- Supports partially typed codebases for easier adoption
+
+**Modern Features:**
+- Advanced type narrowing and intersection types
+- Built-in language server for IDE integration
+- Auto-import, code navigation, and completions
+
+### Installing and Using ty
+
+```bash
+# Run directly with uvx (no installation needed)
+uvx ty check
+
+# Or install with uv
+uv pip install ty
+
+# Check your code
+ty check
+
+# Watch mode for continuous checking
+ty check --watch
+
+# Check specific files or directories
+ty check src/
+ty check script.py
+```
+
+### Configuration
+
+Create `pyproject.toml` configuration:
+
+```toml
+[tool.ty]
+# Python version
+python-version = "3.11"
+
+# Type checking strictness
+strict = true
+
+# Exclude patterns
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+]
+
+# Include patterns
+include = ["src/**/*.py", "tests/**/*.py"]
+
+# Per-file configuration
+[[tool.ty.overrides]]
+files = ["tests/**"]
+disallow-untyped-defs = false
+```
+
+### ty vs mypy
+
+| Feature | ty | mypy |
+|---------|----|----- |
+| Speed | 10-100x faster | Baseline |
+| Language | Rust | Python |
+| IDE Support | Built-in language server | External tools |
+| Maturity | New (2024+) | Mature (2012+) |
+| Community | Growing | Large, established |
+| Configuration | Modern, simple | Comprehensive |
+
+### Example Usage
+
+**calculator.py:**
 ```python
-# Error
+def add(a: int, b: int) -> int:
+    return a + b
+
 def greet(name: str) -> str:
     return f"Hello, {name}"
 
-greet(123)  # Error: Argument 1 has incompatible type "int"; expected "str"
-
-# Fix
-greet(str(123))  # Convert to string
-# Or
-greet("Alice")  # Use correct type
+# Type error
+result = add("1", "2")  # ty will catch this!
 ```
 
-#### Error: Need type annotation for variable
-
-```python
-# Error
-items = []  # Error: Need type annotation for "items"
-
-# Fix
-items: list[int] = []
-# Or
-items: list[str] = []
-```
-
-## Practical Example with mypy
-
-**user_manager.py:**
-```python
-from dataclasses import dataclass
-from typing import Optional
-
-@dataclass
-class User:
-    username: str
-    email: str
-    age: int
-    is_active: bool = True
-
-class UserManager:
-    def __init__(self) -> None:
-        self.users: dict[str, User] = {}
-
-    def add_user(self, user: User) -> None:
-        """Add a user to the manager."""
-        if user.username in self.users:
-            raise ValueError(f"User {user.username} already exists")
-        self.users[user.username] = user
-
-    def get_user(self, username: str) -> Optional[User]:
-        """Get a user by username."""
-        return self.users.get(username)
-
-    def remove_user(self, username: str) -> bool:
-        """Remove a user. Returns True if user was removed."""
-        if username in self.users:
-            del self.users[username]
-            return True
-        return False
-
-    def get_active_users(self) -> list[User]:
-        """Get all active users."""
-        return [user for user in self.users.values() if user.is_active]
-
-    def count_users(self) -> int:
-        """Count total users."""
-        return len(self.users)
-
-def create_sample_users() -> list[User]:
-    """Create sample users for testing."""
-    return [
-        User("alice", "alice@example.com", 30),
-        User("bob", "bob@example.com", 25),
-        User("charlie", "charlie@example.com", 35, is_active=False),
-    ]
-```
-
-**Run mypy:**
+**Run ty:**
 ```bash
-mypy user_manager.py
+uvx ty check calculator.py
 ```
 
 **Output:**
 ```
-Success: no issues found in 1 source file
+calculator.py:8:14 - error: Expected type 'int' but got 'str'
+    8 | result = add("1", "2")
+                     ^^^
 ```
 
-Now let's introduce a type error:
+### IDE Integration
 
-```python
-def process_user(user: User) -> str:
-    return user.age  # Error: should return str, not int
+ty includes a built-in language server that works with:
+- **VS Code**: Install the ty extension
+- **PyCharm**: Configure as external tool
+- **Neovim**: Use built-in LSP client
 
-manager = UserManager()
-manager.add_user("not a user")  # Error: expected User, got str
+**VS Code settings.json:**
+```json
+{
+    "ty.enable": true,
+    "ty.checkOnSave": true
+}
 ```
 
-**mypy output:**
-```
-user_manager.py:42: error: Incompatible return value type (got "int", expected "str")
-user_manager.py:45: error: Argument 1 to "add_user" has incompatible type "str"; expected "User"
-```
+### Try ty Online
+
+Experiment with ty without installation at [play.ty.dev](https://play.ty.dev).
+
+### When to Use ty
+
+**Good fit:**
+- New projects wanting the fastest type checker
+- Large codebases where mypy is slow
+- Teams already using uv and Ruff (consistent tooling)
+- Projects prioritizing IDE performance
+
+**Considerations:**
+- Newer tool with evolving features
+- Smaller community compared to mypy
+- Some advanced mypy plugins may not be available yet
+
+For more details, visit the [official documentation](https://docs.astral.sh/ty/).
 
 ## Pyrefly
 
@@ -460,15 +461,19 @@ Gradually fill in the rest as time permits.
 
 ```bash
 # Install as dev dependencies
-uv pip install --dev mypy pyright
+uv pip install --dev mypy ty
 
 # Run type checking
 uv run mypy src/
-uv run pyright
+uv run ty check
+
+# Or use uvx to run ty without installation
+uvx ty check
 
 # Add to scripts in pyproject.toml
 [project.scripts]
-typecheck = "mypy src/"
+typecheck = "ty check src/"
+typecheck-mypy = "mypy src/"
 ```
 
 ## IDE Integration
@@ -591,6 +596,12 @@ class Handler:
 ## Quick Reference
 
 ```bash
+# ty (recommended for new projects)
+uvx ty check                    # Check with uvx (no install)
+ty check                        # Check all files
+ty check --watch                # Watch mode
+ty check src/                   # Check specific directory
+
 # mypy
 mypy .                          # Check all files
 mypy --strict .                 # Strict mode
@@ -598,6 +609,10 @@ mypy --install-types            # Install missing type stubs
 mypy --show-error-codes .       # Show error codes
 
 # Configuration (pyproject.toml)
+[tool.ty]
+python-version = "3.11"
+strict = true
+
 [tool.mypy]
 python_version = "3.11"
 strict = true

@@ -118,6 +118,7 @@ myapp/
 │   ├── __init__.py
 │   └── test_main.py
 ├── docs/
+├── Makefile
 ├── pyproject.toml
 └── README.md
 ```
@@ -144,7 +145,7 @@ dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "ruff>=0.1.0",
-    "mypy>=1.5.0",
+    "ty>=0.1.0",
     "pre-commit>=3.5.0",
 ]
 
@@ -186,12 +187,9 @@ addopts = [
     "--tb=short",
 ]
 
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-plugins = []
+[tool.ty]
+python-version = "3.11"
+strict = true
 
 [tool.coverage.run]
 source = ["src"]
@@ -276,6 +274,263 @@ my-amazing-library/
 ├── pyproject.toml
 ├── README.md
 └── LICENSE
+```
+
+## Automating Tasks with Make
+
+[Make](https://www.gnu.org/software/make/) is a classic build automation tool that's perfect for running common development tasks. While it's traditionally used for C/C++ projects, it works great for Python too.
+
+### Why Use Make?
+
+- **Simple**: Easy-to-read syntax for defining tasks
+- **Universal**: Available on all Unix-like systems
+- **Fast**: Only runs what's needed
+- **Standard**: Developers are familiar with `make test`, `make lint`, etc.
+- **IDE Integration**: Most IDEs can run Make targets
+
+### Creating a Makefile
+
+Create a file named `Makefile` in your project root:
+
+```makefile
+# Makefile for Python project using uv
+
+.PHONY: help install test lint format typecheck ty clean all
+
+# Default target
+help:
+	@echo "Available targets:"
+	@echo "  make install    - Install dependencies"
+	@echo "  make test       - Run tests with coverage"
+	@echo "  make lint       - Run ruff linter"
+	@echo "  make format     - Format code with ruff"
+	@echo "  make typecheck  - Run ty type checker"
+	@echo "  make ty         - Alias for typecheck"
+	@echo "  make clean      - Remove generated files"
+	@echo "  make all        - Run format, lint, typecheck, and test"
+
+# Install dependencies
+install:
+	uv pip install -e ".[dev]"
+
+# Run tests with coverage
+test:
+	pytest --cov=src --cov-report=term-missing --cov-report=html
+
+# Run linter
+lint:
+	ruff check .
+
+# Fix linting issues
+lint-fix:
+	ruff check --fix .
+
+# Format code
+format:
+	ruff format .
+
+# Check formatting without making changes
+format-check:
+	ruff format --check .
+
+# Run type checker with ty
+typecheck:
+	uvx ty check
+
+# Alias for typecheck
+ty: typecheck
+
+# Run mypy (alternative type checker)
+mypy:
+	mypy src/
+
+# Clean generated files
+clean:
+	rm -rf .pytest_cache
+	rm -rf .mypy_cache
+	rm -rf .ruff_cache
+	rm -rf htmlcov
+	rm -rf dist
+	rm -rf build
+	rm -rf *.egg-info
+	find . -type d -name __pycache__ -exec rm -rf {} +
+	find . -type f -name "*.pyc" -delete
+	find . -type f -name "*.pyo" -delete
+	find . -type f -name ".coverage" -delete
+
+# Run all quality checks
+all: format lint typecheck test
+	@echo "✓ All checks passed!"
+
+# Pre-commit checks (fast version without tests)
+check: format-check lint typecheck
+	@echo "✓ Pre-commit checks passed!"
+```
+
+### Understanding Makefile Syntax
+
+**Basic Structure:**
+```makefile
+target: dependencies
+	command
+```
+
+**Key Points:**
+- Targets are the task names (e.g., `test`, `lint`)
+- `.PHONY:` declares targets that don't create files
+- `@echo` prints messages (@ suppresses command echo)
+- Commands must be indented with a **tab**, not spaces
+- `make` alone runs the first target (usually `help`)
+
+### Using the Makefile
+
+```bash
+# Show available commands
+make
+# or
+make help
+
+# Install dependencies
+make install
+
+# Run tests
+make test
+
+# Format code
+make format
+
+# Check linting
+make lint
+
+# Fix linting issues
+make lint-fix
+
+# Run type checker
+make ty
+
+# Run all checks
+make all
+
+# Quick pre-commit check (no tests)
+make check
+
+# Clean up generated files
+make clean
+```
+
+### Advanced Makefile Features
+
+**Variables:**
+```makefile
+PYTHON := python3
+SRC_DIR := src
+TEST_DIR := tests
+
+test:
+	pytest $(TEST_DIR) --cov=$(SRC_DIR)
+```
+
+**Conditional Commands:**
+```makefile
+install:
+	@command -v uv >/dev/null 2>&1 || { \
+		echo "Installing uv..."; \
+		curl -LsSf https://astral.sh/uv/install.sh | sh; \
+	}
+	uv pip install -e ".[dev]"
+```
+
+**Multiple Commands:**
+```makefile
+deploy: all
+	@echo "Running final checks..."
+	@make test
+	@echo "Building package..."
+	@uv build
+	@echo "Ready to deploy!"
+```
+
+### Integrating with CI/CD
+
+Your CI/CD pipeline can use the same Make targets:
+
+**.github/workflows/ci.yml:**
+```yaml
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: make install
+      - name: Run checks
+        run: make all
+```
+
+### Daily Workflow with Make
+
+```bash
+# Morning: update and check
+git pull
+make install
+make check
+
+# During development
+# ... write code ...
+make test        # Run tests frequently
+make format      # Format before committing
+
+# Before committing
+make all         # Run all checks
+
+# Commit
+git add .
+git commit -m "Add feature X"
+```
+
+### Why Make Over Scripts?
+
+You might wonder why not use a shell script or Python script. Here's why Make is often better:
+
+| Feature | Make | Shell Script | Python Script |
+|---------|------|--------------|---------------|
+| **Learning Curve** | Low | Low | Medium |
+| **Speed** | Fast (built-in) | Fast | Slower (startup) |
+| **IDE Support** | Excellent | Good | Good |
+| **Convention** | Standard | Variable | Variable |
+| **Dependencies** | Built-in tracking | Manual | Manual |
+| **Cross-platform** | Good (Unix) | Good (Unix) | Excellent |
+
+**When to use alternatives:**
+- **Task runners (invoke, nox)**: Complex workflows, need Python features
+- **Scripts**: Windows-only projects, custom logic
+- **Just**: If you prefer more modern syntax
+
+### Quick Reference
+
+```bash
+# Common Make commands
+make              # Show help
+make install      # Install dependencies
+make test         # Run tests
+make lint         # Check code
+make format       # Format code
+make ty           # Type check
+make all          # Run everything
+make clean        # Clean up
+
+# Create Makefile
+# - Use tabs (not spaces) for indentation
+# - Declare .PHONY targets
+# - Add help target first
+# - Keep commands simple
 ```
 
 ## Complete Project Workflow
@@ -384,19 +639,17 @@ def test_add_parametrized(a, b, expected):
 ### Step 3: Run Quality Checks
 
 ```bash
-# Format code
+# Using Make (recommended)
+make format      # Format code
+make lint        # Check linting
+make ty          # Type check
+make test        # Run tests with coverage
+make all         # Run all checks
+
+# Or run commands directly
 ruff format .
-
-# Lint code
 ruff check --fix .
-
-# Type check
-mypy src/
-
-# Run tests
-pytest
-
-# Run tests with coverage
+uvx ty check
 pytest --cov=src --cov-report=term-missing
 ```
 
@@ -412,12 +665,14 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.7.1
+  - repo: local
     hooks:
-      - id: mypy
-        additional_dependencies: []
-        args: [--ignore-missing-imports]
+      - id: ty
+        name: ty
+        entry: uvx ty check
+        language: system
+        types: [python]
+        pass_filenames: false
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
@@ -445,7 +700,8 @@ git commit -m "Initial project setup
 - Add calculator module with basic operations
 - Add comprehensive tests with pytest
 - Configure ruff for linting and formatting
-- Set up mypy for type checking
+- Set up ty for type checking
+- Add Makefile for task automation
 - Add pre-commit hooks
 
 🤖 Generated with Claude Code
@@ -501,10 +757,8 @@ jobs:
           source .venv/bin/activate
           ruff format --check .
 
-      - name: Type check with mypy
-        run: |
-          source .venv/bin/activate
-          mypy src/
+      - name: Type check with ty
+        run: uvx ty check
 
   test:
     name: Test Python ${{ matrix.python-version }}
@@ -580,10 +834,13 @@ def test_power():
 EOF
 
 # Run quality checks
-ruff format .
-ruff check --fix .
-mypy src/
-pytest
+make all
+
+# Or run individually
+# ruff format .
+# ruff check --fix .
+# uvx ty check
+# pytest
 
 # Commit (pre-commit hooks run automatically)
 git add .
@@ -636,12 +893,12 @@ source .venv/bin/activate
 ```bash
 # 1. Write code
 # 2. Run tests frequently
-pytest
+make test
+# or: pytest
 
 # 3. Check code quality
-ruff check --fix .
-ruff format .
-mypy src/
+make check
+# or: ruff check --fix . && ruff format . && uvx ty check
 
 # 4. Commit frequently
 git add .
@@ -655,9 +912,12 @@ git push -u origin feature-name
 
 ```bash
 # Final checks
+make all
+
+# Or run individually
 ruff check .
 ruff format --check .
-mypy src/
+uvx ty check
 pytest --cov=src
 
 # Ensure all tests pass
@@ -691,24 +951,24 @@ uv pip list --outdated
 ### Running Different Checks
 
 ```bash
-# Format only
+# Using Make (recommended)
+make format        # Format code
+make lint          # Check linting
+make lint-fix      # Fix linting issues
+make ty            # Type check
+make test          # Test with coverage
+make all           # Run all checks
+
+# Or run commands directly
 ruff format .
-
-# Lint only
 ruff check .
-
-# Fix linting issues
 ruff check --fix .
-
-# Type check
-mypy src/
-
-# Test with coverage
+uvx ty check
 pytest --cov=src --cov-report=html
 open htmlcov/index.html  # View coverage report
 
-# All checks
-ruff check --fix . && ruff format . && mypy src/ && pytest
+# All checks manually
+ruff check --fix . && ruff format . && uvx ty check && pytest
 ```
 
 ## Troubleshooting Common Issues
@@ -783,10 +1043,19 @@ git commit -m "Merge main and resolve conflicts"
 uv venv
 uv pip install -e ".[dev]"
 
-# Quality checks
+# Using Make (recommended)
+make install       # Install dependencies
+make format        # Format code
+make lint          # Check linting
+make ty            # Type check
+make test          # Run tests
+make all           # Run all checks
+make clean         # Clean generated files
+
+# Quality checks (direct commands)
 ruff check --fix .
 ruff format .
-mypy src/
+uvx ty check
 pytest --cov=src
 
 # Git workflow
@@ -867,15 +1136,16 @@ Help others learn:
 
 You've learned the complete toolkit for modern Python development:
 
-1. **Virtual Environments**: Isolate project dependencies
-2. **Version Control**: Track changes and collaborate
-3. **Linting**: Catch errors automatically
-4. **Formatting**: Maintain consistent style
-5. **Testing**: Verify code correctness
-6. **Type Checking**: Catch type errors early
-7. **CI/CD**: Automate quality checks
-8. **AI Tools**: Accelerate development
-9. **Complete Workflow**: Put it all together
+1. **Virtual Environments**: Isolate project dependencies with uv
+2. **Version Control**: Track changes and collaborate with Git
+3. **Linting**: Catch errors automatically with Ruff
+4. **Formatting**: Maintain consistent style with Ruff
+5. **Testing**: Verify code correctness with pytest
+6. **Type Checking**: Catch type errors early with ty
+7. **Task Automation**: Simplify workflows with Make
+8. **CI/CD**: Automate quality checks with GitHub Actions
+9. **AI Tools**: Accelerate development with LLMs
+10. **Complete Workflow**: Put it all together
 
 These tools and practices will serve you throughout your Python development journey. Start simple, add tools gradually, and soon this workflow will become second nature.
 
