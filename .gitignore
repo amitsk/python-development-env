@@ -41,3 +41,6 @@ build/
 # Environment
 .env
 .env.local
+
+# workspace 
+*workspace*
