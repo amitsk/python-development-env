@@ -1,6 +1,6 @@
-# Chapter 9: LLMs and AI-Powered Development
+# Chapter 10: LLMs and AI-Powered Development
 
-[← Previous: CI/CD](./08-ci-cd.md) | [Back to README](./README.md) | [Next: Putting It Together →](./10-putting-it-together.md)
+[← Previous: CI/CD](./09-ci-cd.md) | [Back to README](./README.md) | [Next: Putting It Together →](./11-putting-it-together.md)
 
 ## What are LLMs?
 
@@ -490,4 +490,4 @@ claude --help     # Show help
 
 Now that you've learned about all the essential tools and practices, let's put everything together in a complete project workflow.
 
-[← Previous: CI/CD](./08-ci-cd.md) | [Back to README](./README.md) | [Next: Putting It Together →](./10-putting-it-together.md)
+[← Previous: CI/CD](./09-ci-cd.md) | [Back to README](./README.md) | [Next: Putting It Together →](./11-putting-it-together.md)

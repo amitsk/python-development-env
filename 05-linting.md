@@ -1,6 +1,6 @@
-# Chapter 4: Linting
+# Chapter 5: Linting
 
-[← Previous: Version Control](./03-version-control.md) | [Back to README](./README.md) | [Next: Code Formatting →](./05-code-formatting.md)
+[← Previous: Version Control](./04-version-control.md) | [Back to README](./README.md) | [Next: Code Formatting →](./06-code-formatting.md)
 
 ## What is Linting?
 
@@ -460,4 +460,4 @@ select = ["E", "F", "I"]
 
 Linting helps catch errors and enforce style, but consistent formatting makes code even more readable. In the next chapter, we'll explore code formatting and how Ruff can handle both linting and formatting.
 
-[← Previous: Version Control](./03-version-control.md) | [Back to README](./README.md) | [Next: Code Formatting →](./05-code-formatting.md)
+[← Previous: Version Control](./04-version-control.md) | [Back to README](./README.md) | [Next: Code Formatting →](./06-code-formatting.md)

@@ -1,6 +1,6 @@
-# Chapter 5: Code Formatting
+# Chapter 6: Code Formatting
 
-[← Previous: Linting](./04-linting.md) | [Back to README](./README.md) | [Next: Unit Testing →](./06-unit-testing.md)
+[← Previous: Linting](./05-linting.md) | [Back to README](./README.md) | [Next: Unit Testing →](./07-unit-testing.md)
 
 ## What is Code Formatting?
 
@@ -544,4 +544,4 @@ indent-style = "space"
 
 With linting and formatting in place, your code is clean and consistent. Next, we'll learn how to verify that your code actually works correctly using unit testing.
 
-[← Previous: Linting](./04-linting.md) | [Back to README](./README.md) | [Next: Unit Testing →](./06-unit-testing.md)
+[← Previous: Linting](./05-linting.md) | [Back to README](./README.md) | [Next: Unit Testing →](./07-unit-testing.md)

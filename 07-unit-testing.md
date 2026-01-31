@@ -1,6 +1,6 @@
-# Chapter 6: Unit Testing
+# Chapter 7: Unit Testing
 
-[← Previous: Code Formatting](./05-code-formatting.md) | [Back to README](./README.md) | [Next: Static Type Checking →](./07-static-type-checking.md)
+[← Previous: Code Formatting](./06-code-formatting.md) | [Back to README](./README.md) | [Next: Static Type Checking →](./08-static-type-checking.md)
 
 ## What is Unit Testing?
 
@@ -681,4 +681,4 @@ pytest -m "not slow"          # Skip slow tests
 
 Testing ensures your code works correctly. Next, we'll explore static type checking, which helps catch type-related bugs before running your code.
 
-[← Previous: Code Formatting](./05-code-formatting.md) | [Back to README](./README.md) | [Next: Static Type Checking →](./07-static-type-checking.md)
+[← Previous: Code Formatting](./06-code-formatting.md) | [Back to README](./README.md) | [Next: Static Type Checking →](./08-static-type-checking.md)

@@ -1,6 +1,6 @@
-# Chapter 8: CI/CD
+# Chapter 9: CI/CD
 
-[← Previous: Static Type Checking](./07-static-type-checking.md) | [Back to README](./README.md) | [Next: LLMs →](./09-llms.md)
+[← Previous: Static Type Checking](./08-static-type-checking.md) | [Back to README](./README.md) | [Next: LLMs →](./10-llms.md)
 
 ## What is CI/CD?
 
@@ -643,4 +643,4 @@ ${{ secrets.SECRET_NAME }}
 
 With CI/CD in place, your code is automatically tested and validated. Next, we'll explore how AI-powered development tools can accelerate your Python development.
 
-[← Previous: Static Type Checking](./07-static-type-checking.md) | [Back to README](./README.md) | [Next: LLMs →](./09-llms.md)
+[← Previous: Static Type Checking](./08-static-type-checking.md) | [Back to README](./README.md) | [Next: LLMs →](./10-llms.md)

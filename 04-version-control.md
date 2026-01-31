@@ -1,6 +1,6 @@
-# Chapter 3: Version Control
+# Chapter 4: Version Control
 
-[← Previous: Virtual Environments](./02-virtual-environments.md) | [Back to README](./README.md) | [Next: Linting →](./04-linting.md)
+[← Previous: Managing Dependencies](./03-dependencies.md) | [Back to README](./README.md) | [Next: Linting →](./05-linting.md)
 
 ## What is Version Control?
 
@@ -428,4 +428,4 @@ git revert <commit>
 
 Now that you can track your code changes with Git, let's look at how to improve code quality with linting - automatically checking your code for errors and style issues.
 
-[← Previous: Virtual Environments](./02-virtual-environments.md) | [Back to README](./README.md) | [Next: Linting →](./04-linting.md)
+[← Previous: Managing Dependencies](./03-dependencies.md) | [Back to README](./README.md) | [Next: Linting →](./05-linting.md)

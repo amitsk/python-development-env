@@ -16,6 +16,7 @@ This tutorial is designed for students and folks learning programming who have s
 This guide covers the essential tools and practices for modern Python development:
 
 - Setting up virtual environments with modern tools
+- Managing project dependencies
 - Version control with Git
 - Code quality through linting and formatting
 - Testing your code effectively
@@ -35,42 +36,48 @@ This guide covers the essential tools and practices for modern Python developmen
    - Creating Virtual Environments
    - Working with uv
 
-3. [Version Control](./03-version-control.md)
+3. [Managing Dependencies](./03-dependencies.md)
+   - What are Dependencies?
+   - Using pip for Package Management
+   - Managing Dependencies with uv
+   - Working with pyproject.toml
+
+4. [Version Control](./04-version-control.md)
    - What is Version Control?
    - Getting Started with Git
    - Best Practices
 
-4. [Linting](./04-linting.md)
+5. [Linting](./05-linting.md)
    - What is Linting?
    - Overview of Python Linters
    - Deep Dive into Ruff
 
-5. [Code Formatting](./05-code-formatting.md)
+6. [Code Formatting](./06-code-formatting.md)
    - Importance of Code Formatting
    - Formatting Tools Overview
    - Formatting with Ruff
 
-6. [Unit Testing](./06-unit-testing.md)
+7. [Unit Testing](./07-unit-testing.md)
    - Understanding Unit Testing
    - Introduction to pytest
    - Writing and Running Tests
 
-7. [Static Type Checking](./07-static-type-checking.md)
+8. [Static Type Checking](./08-static-type-checking.md)
    - What is Static Type Checking?
    - Type Checking Tools
    - Using mypy and Pyrefly
 
-8. [CI/CD](./08-ci-cd.md)
+9. [CI/CD](./09-ci-cd.md)
    - Continuous Integration and Deployment
    - GitHub Actions
    - Automating Your Workflow
 
-9. [LLMs and AI-Powered Development](./09-llms.md)
-   - AI in Python Development
-   - Cursor, Antigravity, and Claude Code
-   - Best Practices with AI Tools
+10. [LLMs and AI-Powered Development](./10-llms.md)
+    - AI in Python Development
+    - Cursor, Antigravity, and Claude Code
+    - Best Practices with AI Tools
 
-10. [Putting It All Together](./10-putting-it-together.md)
+11. [Putting It All Together](./11-putting-it-together.md)
     - Creating a Complete Project
     - Using Cookiecutter Templates
     - Setting Up CI/CD Pipeline

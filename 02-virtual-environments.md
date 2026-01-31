@@ -1,6 +1,6 @@
 # Chapter 2: Python Virtual Environments
 
-[← Previous: Introduction](./01-introduction.md) | [Back to README](./README.md) | [Next: Version Control →](./03-version-control.md)
+[← Previous: Introduction](./01-introduction.md) | [Back to README](./README.md) | [Next: Managing Dependencies →](./03-dependencies.md)
 
 ## What are Virtual Environments?
 
@@ -270,6 +270,6 @@ uv venv --python 3.12
 
 ## What's Next?
 
-Now that you understand how to create and manage virtual environments, let's look at version control with Git - an essential tool for tracking changes to your code.
+Now that you understand how to create and manage virtual environments, let's explore how to manage dependencies - the external packages your project needs to function.
 
-[← Previous: Introduction](./01-introduction.md) | [Back to README](./README.md) | [Next: Version Control →](./03-version-control.md)
+[← Previous: Introduction](./01-introduction.md) | [Back to README](./README.md) | [Next: Managing Dependencies →](./03-dependencies.md)

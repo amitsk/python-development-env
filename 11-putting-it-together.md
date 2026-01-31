@@ -1,6 +1,6 @@
-# Chapter 10: Putting It All Together
+# Chapter 11: Putting It All Together
 
-[← Previous: LLMs](./09-llms.md) | [Back to README](./README.md)
+[← Previous: LLMs](./10-llms.md) | [Back to README](./README.md)
 
 ## Overview
 
@@ -881,4 +881,4 @@ These tools and practices will serve you throughout your Python development jour
 
 Happy coding!
 
-[← Previous: LLMs](./09-llms.md) | [Back to README](./README.md)
+[← Previous: LLMs](./10-llms.md) | [Back to README](./README.md)
