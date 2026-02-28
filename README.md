@@ -99,4 +99,4 @@ Found an issue or have a suggestion? Feel free to open an issue or submit a pull
 
 ## License
 
-This guide is provided as-is for educational purposes.
+This guide is released under the [MIT License](./LICENSE). You are free to use, share, and adapt it — just include attribution.
