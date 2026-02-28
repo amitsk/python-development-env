@@ -8,6 +8,7 @@ the details in this file. The audience for the tutorial are students or folks le
     **** Explain basic software engineering best practices like Version control, Linting, Code formatting, Unit Testing, CI/CD
     **** Set the contex about uv. Mention that uv will be used. Links to uv and uv installation for Mac+Windows+Linux
     **** Explain how VSCode will be used. Point to VSCode github link https://github.com/microsoft/vscode.
+    **** Add a note that the tools mentioned are some of the popular modern choices and that there are many other excellent tools available (Poetry, PDM, Flake8, Pylint, Black, Pyright, Flask, Django, Litestar, etc.) - the ones covered provide a solid foundation but users should pick what works best for their project.
 *** Python Virtual environments
     **** Explain what are Virtual envs. Benefits of virtual environments. 
     **** Explain how to create venv in Python3 
@@ -41,6 +42,59 @@ the details in this file. The audience for the tutorial are students or folks le
     **** Very short explainer about Cursor. Point to Cursor github link https://github.com/cursor-ai/cursor
     **** Short explainer about Antigravity. Point to Antigravity github link https://github.com/antigravity-ai/antigravity
     **** Short explainer about Claude Code. Point to Claude Code github link https://github.com/anthropic/claude-code
+
+*** Database Libraries
+    **** Landscape: DBAPI (PEP 249, sqlite3), SQLAlchemy Core, SQLAlchemy ORM, SQLModel
+    **** DBAPI - PEP 249 standard, sqlite3 example, parameterized queries, context managers
+    **** SQLAlchemy - https://www.sqlalchemy.org - Core (SQL Expression Language) and ORM (DeclarativeBase, Session, relationships)
+    **** SQLModel - https://sqlmodel.tiangolo.com - built on SQLAlchemy + Pydantic by FastAPI creator. One class = DB table + validation schema. Full CRUD example.
+    **** Alembic - migrations tool for SQLAlchemy: alembic init, autogenerate, upgrade head
+    **** Comparison table: DBAPI vs SQLAlchemy Core vs SQLAlchemy ORM vs SQLModel
+    **** When to choose each
+
+*** REST APIs with FastAPI
+    **** FastAPI - https://fastapi.tiangolo.com - modern, fast, type-safe Python web framework built on Starlette + Pydantic
+    **** Installation: uv add fastapi uvicorn[standard]
+    **** Path parameters, query parameters, request body with Pydantic models
+    **** Complete CRUD REST API example (heroes resource)
+    **** Automatic OpenAPI docs at /docs and /redoc
+    **** Dependency injection with Depends()
+    **** Integration with SQLModel for database-backed APIs
+    **** Testing with pytest + httpx TestClient
+    **** Running in production: uvicorn workers, Gunicorn
+    **** Alternatives: Flask, Django REST Framework, Litestar
+
+*** AWS Lambda with Python
+    **** What is AWS Lambda - serverless, event-driven, automatic scaling, pay per invocation
+    **** Python Lambda handler structure: def handler(event, context) -> dict
+    **** AWS Lambda Powertools - https://docs.powertools.aws.dev/lambda/python/ - structured logging, tracing, metrics, typed event parsing
+    **** API Gateway handler example using Powertools
+    **** SQS handler with partial batch failure handling
+    **** AWS SAM (Serverless Application Model) - https://aws.amazon.com/serverless/sam/
+        ***** Installation: AWS CLI + SAM CLI
+        ***** template.yaml for Python Lambda, API Gateway, DynamoDB
+        ***** sam build, sam local invoke, sam local start-api, sam deploy
+    **** Packaging Python dependencies
+    **** Testing Lambda handlers with pytest and moto
+    **** DynamoDB with boto3 and boto3-stubs type hints
+    **** CI/CD with GitHub Actions: OIDC authentication, sam build, sam deploy on main
+
+*** CLI Libraries
+    **** Why build CLI tools in Python
+    **** Typer - https://typer.tiangolo.com - modern CLI using type hints, built on Click
+        ***** Installation: uv add typer
+        ***** Single command app with typer.run()
+        ***** Multi-command app with @app.command()
+        ***** Arguments vs Options from type annotations
+        ***** Complete tasks CLI example
+        ***** Subcommands with app.add_typer()
+        ***** Auto-generated --help from type hints and docstrings
+    **** Rich - https://rich.readthedocs.io - beautiful terminal output
+        ***** Installation: uv add rich
+        ***** Console, markup, tables, progress bars, panels, syntax highlighting
+        ***** Logging integration with RichHandler
+    **** Typer + Rich together - complete mkproject scaffolding CLI example
+    **** Packaging CLI as a tool: [project.scripts] in pyproject.toml, uvx
 
 *** Stitch it all together.
     **** Stitch it all together.

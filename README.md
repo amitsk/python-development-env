@@ -22,6 +22,10 @@ This guide covers the essential tools and practices for modern Python developmen
 - Testing your code effectively
 - Continuous Integration and Deployment (CI/CD)
 - Using AI-powered development tools
+- Working with databases using SQLModel and SQLAlchemy
+- Building REST APIs with FastAPI
+- Deploying serverless functions with AWS Lambda and SAM
+- Building CLI tools with Typer and Rich
 - Putting it all together in a real project
 
 ## Table of Contents
@@ -77,7 +81,27 @@ This guide covers the essential tools and practices for modern Python developmen
     - Cursor, Antigravity, and Claude Code
     - Best Practices with AI Tools
 
-11. [Putting It All Together](./11-putting-it-together.md)
+11. [Database Libraries](./11-database-libraries.md)
+    - DBAPI, SQLAlchemy, and SQLModel compared
+    - Type-safe database access with SQLModel
+    - Migrations with Alembic
+
+12. [REST APIs with FastAPI](./12-fastapi.md)
+    - Building type-safe APIs with FastAPI
+    - Pydantic models and automatic validation
+    - Automatic OpenAPI documentation
+
+13. [AWS Lambda with Python](./13-aws-lambda.md)
+    - Serverless Python with AWS Lambda
+    - AWS SAM for local development and deployment
+    - AWS Lambda Powertools for production
+
+14. [CLI Libraries](./14-cli-libraries.md)
+    - Building CLI tools with Typer
+    - Beautiful terminal output with Rich
+    - Combining Typer and Rich
+
+15. [Putting It All Together](./15-putting-it-together.md)
     - Creating a Complete Project
     - Using Cookiecutter Templates
     - Setting Up CI/CD Pipeline

@@ -119,6 +119,8 @@ We'll use Visual Studio Code (VSCode) as our primary code editor. VSCode is:
 
 You can install VSCode extensions from the Extensions view (Ctrl+Shift+X or Cmd+Shift+X on macOS).
 
+> **A note on tool choices:** The tools highlighted in this guide represent some of the popular, modern choices in the Python ecosystem. The ecosystem is large and has many excellent options in every category — package managers (Poetry, PDM, pip-tools), linters (Flake8, Pylint, Bandit), formatters (Black, autopep8), type checkers (Pyright, Pyre), test runners (unittest, nose2), web frameworks (Django, Flask, Litestar), and more. The ones covered here give you a solid, well-supported foundation. Once you understand the concepts behind each category, switching to a different tool is straightforward. Don't feel locked in — pick what works best for your project and team.
+
 ## What's Next?
 
 Now that you understand the context and have an overview of the tools we'll use, let's start with the foundation of Python development: virtual environments.

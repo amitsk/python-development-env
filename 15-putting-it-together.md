@@ -1,6 +1,6 @@
-# Chapter 11: Putting It All Together
+# Chapter 15: Putting It All Together
 
-[← Previous: LLMs](./10-llms.md) | [Back to README](./README.md)
+[← Previous: CLI Libraries](./14-cli-libraries.md) | [Back to README](./README.md)
 
 ## Overview
 
@@ -1151,4 +1151,4 @@ These tools and practices will serve you throughout your Python development jour
 
 Happy coding!
 
-[← Previous: LLMs](./10-llms.md) | [Back to README](./README.md)
+[← Previous: CLI Libraries](./14-cli-libraries.md) | [Back to README](./README.md)
