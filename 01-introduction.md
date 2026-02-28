@@ -27,7 +27,7 @@ Version control systems track changes to your code over time. They allow you to:
 - Revert to previous versions if something breaks
 - Work on multiple features simultaneously
 
-We'll cover Git in detail in [Chapter 3](./03-version-control.md).
+We'll cover Git in detail in [Chapter 4](./04-version-control.md).
 
 ### Linting
 
@@ -37,7 +37,7 @@ Linting is the process of automatically checking your code for potential errors,
 - Learning best practices through automated feedback
 - Reducing code review time
 
-We'll explore linting tools in [Chapter 4](./04-linting.md).
+We'll explore linting tools in [Chapter 5](./05-linting.md).
 
 ### Code Formatting
 
@@ -47,7 +47,7 @@ Code formatting ensures your code follows consistent style guidelines. This is i
 - It makes collaboration smoother
 - Many tools can format code automatically
 
-We'll discuss formatting in [Chapter 5](./05-code-formatting.md).
+We'll discuss formatting in [Chapter 6](./06-code-formatting.md).
 
 ### Unit Testing
 
@@ -57,7 +57,7 @@ Unit testing involves writing code to test your code. Benefits include:
 - Documentation of how code should behave
 - Faster debugging when issues arise
 
-Testing is covered in [Chapter 6](./06-unit-testing.md).
+Testing is covered in [Chapter 7](./07-unit-testing.md).
 
 ### CI/CD (Continuous Integration/Continuous Deployment)
 
@@ -67,7 +67,7 @@ CI/CD automates the process of testing and deploying code:
 - Deploy code reliably and consistently
 - Reduce manual work and human error
 
-We'll set up CI/CD in [Chapter 8](./08-ci-cd.md).
+We'll set up CI/CD in [Chapter 9](./09-ci-cd.md).
 
 ## Tools We'll Use
 

@@ -6,9 +6,6 @@
 *~
 .DS_Store
 
-# Prompt files
-prompt*
-
 # Python
 __pycache__/
 *.py[cod]

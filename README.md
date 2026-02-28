@@ -65,7 +65,7 @@ This guide covers the essential tools and practices for modern Python developmen
 8. [Static Type Checking](./08-static-type-checking.md)
    - What is Static Type Checking?
    - Type Checking Tools
-   - Using mypy and Pyrefly
+   - Using mypy, ty, and Pyrefly
 
 9. [CI/CD](./09-ci-cd.md)
    - Continuous Integration and Deployment

@@ -407,25 +407,125 @@ For more details, visit the [official documentation](https://docs.astral.sh/ty/)
 
 ## Pyrefly
 
-[Pyrefly](https://pyrefly.org/) is a newer tool that aims to make type checking easier and more intuitive.
+[Pyrefly](https://pyrefly.org/) is a Python type checker developed and open-sourced by Meta (Facebook) in 2025. It is written in Rust for high performance and is designed to handle large codebases with fast incremental checking.
+
+### Why Pyrefly?
+
+**Performance:**
+- Written in Rust — extremely fast type checking
+- Incremental analysis: only re-checks files that changed
+- Handles large monorepos that can slow down mypy
+
+**Developer Experience:**
+- Clear, actionable error messages with rich context
+- Interactive playground at [pyrefly.org](https://pyrefly.org/) — try it without installing
+- Built-in language server for IDE integration (LSP)
+
+**Modern Design:**
+- Full support for Python's typing system (PEP 484 and beyond)
+- Good type inference for unannotated code
+- Designed to be compatible with existing typed codebases
 
 ### Installing Pyrefly
 
-Check the official website for installation instructions:
-
 ```bash
-# Installation varies by platform
-# Visit https://pyrefly.org/ for latest instructions
+# Install with pip or uv
+pip install pyrefly
+
+# Or using uv
+uv pip install pyrefly
+
+# Or run without installing
+uvx pyrefly check
 ```
 
-### Pyrefly Features
+For the latest installation options, visit [pyrefly.org](https://pyrefly.org/).
 
-- Simpler error messages
-- Better inference
-- Interactive mode
-- Focus on developer experience
+### Basic Usage
 
-**Note:** As Pyrefly is newer, check the official documentation for the latest features and usage.
+```bash
+# Check all Python files in the current directory
+pyrefly check
+
+# Check a specific file
+pyrefly check src/mymodule.py
+
+# Check a directory
+pyrefly check src/
+
+# Watch mode — re-check on file changes
+pyrefly check --watch
+```
+
+### Example
+
+**calculator.py:**
+```python
+def add(a: int, b: int) -> int:
+    return a + b
+
+# Type error: passing strings where ints are expected
+result = add("1", "2")
+```
+
+**Run Pyrefly:**
+```bash
+pyrefly check calculator.py
+```
+
+**Output:**
+```
+calculator.py:5:14 error: Expected `int`, got `str` [arg-type]
+    5 | result = add("1", "2")
+                      ^^^
+```
+
+### Configuration
+
+Pyrefly can be configured in `pyproject.toml`:
+
+```toml
+[tool.pyrefly]
+# Python version to check against
+python_version = "3.11"
+
+# Paths to check
+include = ["src/", "tests/"]
+
+# Paths to skip
+exclude = [".venv/", "build/"]
+```
+
+### IDE Integration
+
+Pyrefly ships a language server that integrates with editors via LSP:
+
+- **VS Code**: Install the Pyrefly extension from the marketplace
+- **Neovim / Vim**: Configure with nvim-lspconfig
+- **Other editors**: Any editor supporting LSP works
+
+### Pyrefly vs Other Type Checkers
+
+| Feature | Pyrefly | ty | mypy |
+|---------|---------|-----|------|
+| Author | Meta | Astral | Guido van Rossum et al. |
+| Language | Rust | Rust | Python |
+| Speed | Very fast | Very fast | Baseline |
+| IDE Support | Built-in LSP | Built-in LSP | External tools |
+| Maturity | New (2025) | New (2024+) | Mature (2012+) |
+| Inference | Strong | Strong | Good |
+
+### When to Use Pyrefly
+
+**Good fit:**
+- Large codebases where mypy is slow
+- Teams already familiar with Meta's Python ecosystem
+- Projects that want a second opinion alongside mypy or ty
+
+**Try the Playground:**
+Visit [pyrefly.org](https://pyrefly.org/) to experiment with Pyrefly in your browser before installing it locally.
+
+**Note:** As Pyrefly is relatively new, check the [official documentation](https://pyrefly.org/) for the latest installation steps, configuration options, and features.
 
 ## Gradual Typing Strategy
 

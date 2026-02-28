@@ -87,7 +87,7 @@ Several tools integrate LLMs into the development workflow. Let's explore the ma
 ### Links
 
 - [Cursor Website](https://cursor.sh)
-- [Cursor on GitHub](https://github.com/getcursor) (organization)
+- [Cursor on GitHub](https://github.com/cursor-ai/cursor)
 - [Cursor Documentation](https://cursor.sh/docs)
 
 ## Antigravity
