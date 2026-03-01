@@ -1,6 +1,6 @@
-# Chapter 14: CLI Libraries
+# Chapter 15: CLI Libraries
 
-[← Previous: AWS Lambda](./13-aws-lambda.md) | [Back to README](./README.md) | [Next: Putting It All Together →](./15-putting-it-together.md)
+[← Previous: AWS Lambda](./14-aws-lambda.md) | [Back to README](./README.md) | [Next: Putting It All Together →](./16-putting-it-together.md)
 
 ## Why Build CLI Tools in Python?
 
@@ -1096,4 +1096,4 @@ These tools are practical from day one. The next time you find yourself writing 
 
 In the next chapter, we bring everything together: virtual environments, dependency management, linting, formatting, type checking, testing, and now CLI libraries — all working in concert in a complete, real-world Python project.
 
-[← Previous: AWS Lambda](./13-aws-lambda.md) | [Back to README](./README.md) | [Next: Putting It All Together →](./15-putting-it-together.md)
+[← Previous: AWS Lambda](./14-aws-lambda.md) | [Back to README](./README.md) | [Next: Putting It All Together →](./16-putting-it-together.md)

@@ -1,6 +1,6 @@
 # Chapter 8: Static Type Checking
 
-[← Previous: Unit Testing](./07-unit-testing.md) | [Back to README](./README.md) | [Next: CI/CD →](./09-ci-cd.md)
+[← Previous: Unit Testing](./07-unit-testing.md) | [Back to README](./README.md) | [Next: Logging →](./09-logging.md)
 
 ## What is Static Type Checking?
 
@@ -728,4 +728,4 @@ opt: str | None = None
 
 With type checking in place, you're writing more robust code. Next, we'll automate all these quality checks with CI/CD, ensuring every code change meets your standards.
 
-[← Previous: Unit Testing](./07-unit-testing.md) | [Back to README](./README.md) | [Next: CI/CD →](./09-ci-cd.md)
+[← Previous: Unit Testing](./07-unit-testing.md) | [Back to README](./README.md) | [Next: Logging →](./09-logging.md)

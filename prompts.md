@@ -33,8 +33,26 @@ the details in this file. The audience for the tutorial are students or folks le
     **** Very short explainer about mypy. Point to mypy github link https://github.com/python/mypy
     **** Detailed explainer on static type checking using ty.
     **** Detailed explainer on pyrefly https://pyrefly.org/
+*** Logging
+    **** Why print() is not enough for production
+    **** Python stdlib logging: basicConfig, named loggers, handlers, formatters, log levels
+    **** Loguru - https://github.com/Delgan/loguru - ergonomic logging with zero boilerplate
+        ***** Installation: uv add loguru
+        ***** Zero-config default sink
+        ***** Configuring sinks: logger.remove(), logger.add()
+        ***** File rotation, retention, compression
+        ***** Structured context with logger.bind()
+        ***** Exception tracebacks with @logger.catch and logger.exception()
+        ***** Intercepting stdlib logging with InterceptHandler
+    **** Picologging - https://github.com/microsoft/picologging - drop-in C replacement for stdlib logging
+        ***** Installation: uv add picologging
+        ***** Same API as stdlib logging: import picologging as logging
+        ***** When to use: existing codebases, high-throughput services
+    **** Comparison table: stdlib vs loguru vs picologging
+    **** Recommendations
+
 *** CI/CD
-    **** Explain what is CI/CD. Benefits of CI/CD. 
+    **** Explain what is CI/CD. Benefits of CI/CD.
     **** Very short explainer about github actions. Point to github actions github link https://github.com/features/actions
 
 *** LLMs

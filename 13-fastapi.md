@@ -1,6 +1,6 @@
-# Chapter 12: REST APIs with FastAPI
+# Chapter 13: REST APIs with FastAPI
 
-[← Previous: Database Libraries](./11-database-libraries.md) | [Back to README](./README.md) | [Next: AWS Lambda →](./13-aws-lambda.md)
+[← Previous: Database Libraries](./12-database-libraries.md) | [Back to README](./README.md) | [Next: AWS Lambda →](./14-aws-lambda.md)
 
 ## What is FastAPI?
 
@@ -771,4 +771,4 @@ You now have a complete picture of building type-safe, well-documented REST APIs
 
 In the next chapter, we look at **AWS Lambda** — a serverless compute platform where you can run your Python code (including FastAPI applications, via adapters like Mangum) without provisioning or managing servers. You pay only for the time your code actually runs, and the platform scales automatically from zero to millions of requests.
 
-[← Previous: Database Libraries](./11-database-libraries.md) | [Back to README](./README.md) | [Next: AWS Lambda →](./13-aws-lambda.md)
+[← Previous: Database Libraries](./12-database-libraries.md) | [Back to README](./README.md) | [Next: AWS Lambda →](./14-aws-lambda.md)

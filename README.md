@@ -20,6 +20,7 @@ This guide covers the essential tools and practices for modern Python developmen
 - Version control with Git
 - Code quality through linting and formatting
 - Testing your code effectively
+- Logging with loguru and picologging
 - Continuous Integration and Deployment (CI/CD)
 - Using AI-powered development tools
 - Working with databases using SQLModel and SQLAlchemy
@@ -71,37 +72,42 @@ This guide covers the essential tools and practices for modern Python developmen
    - Type Checking Tools
    - Using mypy, ty, and Pyrefly
 
-9. [CI/CD](./09-ci-cd.md)
-   - Continuous Integration and Deployment
-   - GitHub Actions
-   - Automating Your Workflow
+9. [Logging](./09-logging.md)
+   - print() vs proper logging
+   - Python logging stdlib, loguru, and picologging
+   - Structured logging and log rotation
 
-10. [LLMs and AI-Powered Development](./10-llms.md)
+10. [CI/CD](./10-ci-cd.md)
+    - Continuous Integration and Deployment
+    - GitHub Actions
+    - Automating Your Workflow
+
+11. [LLMs and AI-Powered Development](./11-llms.md)
     - AI in Python Development
     - Cursor, Antigravity, and Claude Code
     - Best Practices with AI Tools
 
-11. [Database Libraries](./11-database-libraries.md)
+12. [Database Libraries](./12-database-libraries.md)
     - DBAPI, SQLAlchemy, and SQLModel compared
     - Type-safe database access with SQLModel
     - Migrations with Alembic
 
-12. [REST APIs with FastAPI](./12-fastapi.md)
+13. [REST APIs with FastAPI](./13-fastapi.md)
     - Building type-safe APIs with FastAPI
     - Pydantic models and automatic validation
     - Automatic OpenAPI documentation
 
-13. [AWS Lambda with Python](./13-aws-lambda.md)
+14. [AWS Lambda with Python](./14-aws-lambda.md)
     - Serverless Python with AWS Lambda
     - AWS SAM for local development and deployment
     - AWS Lambda Powertools for production
 
-14. [CLI Libraries](./14-cli-libraries.md)
+15. [CLI Libraries](./15-cli-libraries.md)
     - Building CLI tools with Typer
     - Beautiful terminal output with Rich
     - Combining Typer and Rich
 
-15. [Putting It All Together](./15-putting-it-together.md)
+16. [Putting It All Together](./16-putting-it-together.md)
     - Creating a Complete Project
     - Using Cookiecutter Templates
     - Setting Up CI/CD Pipeline

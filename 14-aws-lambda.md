@@ -1,6 +1,6 @@
-# Chapter 13: AWS Lambda with Python
+# Chapter 14: AWS Lambda with Python
 
-[← Previous: FastAPI](./12-fastapi.md) | [Back to README](./README.md) | [Next: CLI Libraries →](./14-cli-libraries.md)
+[← Previous: FastAPI](./13-fastapi.md) | [Back to README](./README.md) | [Next: CLI Libraries →](./15-cli-libraries.md)
 
 ## What is AWS Lambda?
 
@@ -1157,4 +1157,4 @@ You now have a solid foundation for building production Python applications on A
 
 Many real-world workflows do not live behind an HTTP API — they are invoked from the command line by operators, scripts, or scheduled jobs. In the next chapter, we look at Python's excellent CLI library ecosystem and how to build polished command-line tools that are as easy to use as they are to maintain.
 
-[← Previous: FastAPI](./12-fastapi.md) | [Back to README](./README.md) | [Next: CLI Libraries →](./14-cli-libraries.md)
+[← Previous: FastAPI](./13-fastapi.md) | [Back to README](./README.md) | [Next: CLI Libraries →](./15-cli-libraries.md)

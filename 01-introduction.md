@@ -67,7 +67,7 @@ CI/CD automates the process of testing and deploying code:
 - Deploy code reliably and consistently
 - Reduce manual work and human error
 
-We'll set up CI/CD in [Chapter 9](./09-ci-cd.md).
+We'll set up CI/CD in [Chapter 10](./10-ci-cd.md).
 
 ## Tools We'll Use
 

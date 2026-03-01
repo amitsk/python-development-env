@@ -1,6 +1,6 @@
-# Chapter 11: Database Libraries
+# Chapter 12: Database Libraries
 
-[← Previous: LLMs](./10-llms.md) | [Back to README](./README.md) | [Next: FastAPI →](./12-fastapi.md)
+[← Previous: LLMs](./11-llms.md) | [Back to README](./README.md) | [Next: FastAPI →](./13-fastapi.md)
 
 ## Database Access in Python
 
@@ -762,4 +762,4 @@ You now have a solid foundation in Python's database ecosystem: raw SQL via DBAP
 
 The natural next step is to put that database layer to work inside a web API. In the next chapter, we will build a FastAPI application from scratch — defining routes, request and response schemas, and wiring up a SQLModel database layer so that the same model class validates API input and persists data to the database.
 
-[← Previous: LLMs](./10-llms.md) | [Back to README](./README.md) | [Next: FastAPI →](./12-fastapi.md)
+[← Previous: LLMs](./11-llms.md) | [Back to README](./README.md) | [Next: FastAPI →](./13-fastapi.md)
