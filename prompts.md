@@ -57,9 +57,11 @@ the details in this file. The audience for the tutorial are students or folks le
 
 *** LLMs
     **** Explain what is LLMs. Benefits of LLMs and using these in python projects
-    **** Very short explainer about Cursor. Point to Cursor github link https://github.com/cursor-ai/cursor
-    **** Short explainer about Antigravity. Point to Antigravity github link https://github.com/antigravity-ai/antigravity
-    **** Short explainer about Claude Code. Point to Claude Code github link https://github.com/anthropic/claude-code
+    **** GitHub Copilot - https://github.com/features/copilot - IDE completions, chat, agent mode
+    **** Cursor - https://cursor.com - AI-first editor based on VS Code
+    **** Claude Code - https://github.com/anthropics/claude-code - Anthropic terminal coding agent
+    **** OpenAI Codex - https://openai.com/codex/ and https://github.com/openai/codex - Codex CLI / coding agent
+    **** Grok Build - xAI agentic coding / terminal development environment
 
 *** Database Libraries
     **** Landscape: DBAPI (PEP 249, sqlite3), SQLAlchemy Core, SQLAlchemy ORM, SQLModel

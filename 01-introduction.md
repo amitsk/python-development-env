@@ -71,14 +71,16 @@ We'll set up CI/CD in [Chapter 10](./10-ci-cd.md).
 
 ## Tools We'll Use
 
-### uv: Modern Python Package Management
+### uv: Modern Python Package and Project Manager
 
 Throughout this tutorial, we'll use [uv](https://github.com/astral-sh/uv), a fast, modern Python package and project manager written in Rust. uv provides:
 
-- Extremely fast package installation
+- Extremely fast package installation and dependency resolution
 - Built-in virtual environment management
-- Tool execution without installation
-- Drop-in replacement for pip and pip-tools
+- Project workflows: `uv init`, `uv add`, `uv sync`, `uv run`
+- Lockfiles (`uv.lock`) for reproducible installs
+- Tool execution without permanent install (`uvx`)
+- Compatibility with pip and `requirements.txt` when you need it
 
 #### Installing uv
 
@@ -92,34 +94,34 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-**Using pip:**
+**Using pip (if you already have Python):**
 ```bash
 pip install uv
 ```
 
 For more installation options, visit the [uv documentation](https://docs.astral.sh/uv/getting-started/installation/).
 
-### VSCode: Your Code Editor
+### VS Code: Your Code Editor
 
-We'll use Visual Studio Code (VSCode) as our primary code editor. VSCode is:
+We'll use Visual Studio Code (VS Code) as our primary code editor. VS Code is:
 - Free and open-source
 - Highly extensible with thousands of extensions
 - Well-supported with regular updates
 - Available for Windows, macOS, and Linux
 
-**Get VSCode:**
-- [VSCode GitHub Repository](https://github.com/microsoft/vscode)
-- [Download VSCode](https://code.visualstudio.com/)
+**Get VS Code:**
+- [VS Code GitHub Repository](https://github.com/microsoft/vscode)
+- [Download VS Code](https://code.visualstudio.com/)
 
 **Recommended Python Extensions:**
-- Python (Microsoft) - Python language support
-- Pylance - Fast, feature-rich language support
-- Python Debugger - Debugging support
-- Ruff - Fast linting and formatting
+- Python (Microsoft) — language support
+- Pylance — language server / IntelliSense
+- Python Debugger — debugging
+- Ruff (Astral) — fast linting and formatting
 
-You can install VSCode extensions from the Extensions view (Ctrl+Shift+X or Cmd+Shift+X on macOS).
+You can install extensions from the Extensions view (Ctrl+Shift+X or Cmd+Shift+X on macOS).
 
-> **A note on tool choices:** The tools highlighted in this guide represent some of the popular, modern choices in the Python ecosystem. The ecosystem is large and has many excellent options in every category — package managers (Poetry, PDM, pip-tools), linters (Flake8, Pylint, Bandit), formatters (Black, autopep8), type checkers (Pyright, Pyre), test runners (unittest, nose2), web frameworks (Django, Flask, Litestar), and more. The ones covered here give you a solid, well-supported foundation. Once you understand the concepts behind each category, switching to a different tool is straightforward. Don't feel locked in — pick what works best for your project and team.
+> **A note on tool choices:** The tools in this guide are popular modern defaults, not the only valid stack. Excellent alternatives exist in every category — package managers (Poetry, PDM, pip-tools), linters (Flake8, Pylint, Bandit), formatters (Black, autopep8), type checkers (Pyright, mypy, Pyrefly), test runners (unittest), web frameworks (Django, Flask, Litestar), and AI tools (GitHub Copilot, Cursor, Claude Code, Codex, Grok Build). Learn the *concepts*, then pick what fits your project and team.
 
 ## What's Next?
 

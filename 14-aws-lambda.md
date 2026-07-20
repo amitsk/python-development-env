@@ -649,16 +649,16 @@ dependencies = [
     "boto3>=1.34.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "boto3-stubs[dynamodb,sqs]>=1.34.0",
     "moto[dynamodb,sqs]>=5.0.0",
     "pytest>=8.0.0",
-    "ruff>=0.3.0",
+    "ruff>=0.9.0",
 ]
 ```
 
-SAM installs only the `dependencies` section — dev dependencies are excluded from the Lambda package, keeping it small.
+SAM / packaging should install only runtime `[project.dependencies]`. Keep test and lint tools in `[dependency-groups]` (or install them only in CI with `uv sync`) so they never ship inside the Lambda package.
 
 ### Lambda Layers for Shared Dependencies
 

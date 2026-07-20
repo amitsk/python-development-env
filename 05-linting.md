@@ -167,12 +167,18 @@ Ruff can be configured via `pyproject.toml`, `ruff.toml`, or `.ruff.toml`.
 
 ```toml
 [tool.ruff]
-# Set the maximum line length
 line-length = 88
+target-version = "py312"
 
-# Assume Python 3.11
-target-version = "py311"
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+]
 
+[tool.ruff.lint]
 # Enable specific rule sets
 select = [
     "E",   # pycodestyle errors
@@ -189,16 +195,7 @@ ignore = [
     "E501",  # line too long (handled by formatter)
 ]
 
-# Exclude directories
-exclude = [
-    ".git",
-    ".venv",
-    "__pycache__",
-    "build",
-    "dist",
-]
-
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 # Ignore specific rules in test files
 "tests/**/*.py" = ["S101"]  # Allow assert in tests
 ```
@@ -292,13 +289,11 @@ After auto-fix, Ruff removes unused imports. You'll need to manually fix:
 You can run Ruff through uv without installing it in your environment:
 
 ```bash
-# Run ruff using uv (installs if needed)
-uv tool run ruff check .
+# One-off run (no project install required)
+uvx ruff check .
 
-# Or add ruff as a development dependency
-uv pip install --dev ruff
-
-# Then run it
+# Or add Ruff as a development dependency
+uv add --dev ruff
 uv run ruff check .
 ```
 
@@ -336,10 +331,13 @@ uv pip install pre-commit
 ```yaml
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.9  # Use latest version
+    # Pin to a current release tag from:
+    # https://github.com/astral-sh/ruff-pre-commit/releases
+    rev: v0.12.0
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
 ```
 
 **3. Install the hook:**
@@ -449,11 +447,12 @@ ruff check --watch .
 # Show statistics
 ruff check . --statistics
 
-# Configuration
-# Add to pyproject.toml:
-[tool.ruff]
-line-length = 88
-select = ["E", "F", "I"]
+# Configuration (pyproject.toml):
+# [tool.ruff]
+# line-length = 88
+# target-version = "py312"
+# [tool.ruff.lint]
+# select = ["E", "F", "I"]
 ```
 
 ## What's Next?

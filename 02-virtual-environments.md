@@ -84,24 +84,46 @@ deactivate
 
 ## Creating Virtual Environments with uv
 
-While Python's built-in `venv` works well, `uv` provides a faster and more modern approach to managing virtual environments and packages.
+While Python's built-in `venv` works well, **uv** is the primary tool in this guide: it creates environments quickly and manages projects end-to-end.
 
-### Creating a Virtual Environment with uv
+### Preferred: start a project with uv
+
+For new work, initialize a project (creates `pyproject.toml`, a virtualenv, and a modern layout):
 
 ```bash
-# Create a virtual environment
+# Create a new project directory and scaffold
+uv init myapp
+cd myapp
+
+# Or initialize inside the current directory
+uv init
+```
+
+Then add packages and sync:
+
+```bash
+uv add requests          # runtime dependency
+uv add --dev pytest ruff # development tools
+uv sync                  # install from lockfile into .venv
+uv run python main.py    # run without manual activation
+```
+
+### Creating only a virtual environment
+
+```bash
+# Create a virtual environment (default name: .venv)
 uv venv
 
-# Or specify a custom name
+# Custom name
 uv venv myenv
 
-# Or specify a Python version
+# Specific Python version (uv can download it if needed)
 uv venv --python 3.12
 ```
 
-### Activating the uv Virtual Environment
+### Activating the uv virtual environment
 
-Activation works the same as with standard venv:
+Activation works like standard venv when you want a classic shell prompt:
 
 **On macOS/Linux:**
 ```bash
@@ -113,72 +135,58 @@ source .venv/bin/activate
 .venv\Scripts\activate
 ```
 
-Note: uv creates a `.venv` directory by default (with a dot prefix).
+Note: uv creates a `.venv` directory by default (dot prefix). In day-to-day work you can often skip activation and use `uv run` instead.
 
-### Installing Packages with uv
+### Installing packages with uv
 
-uv offers several ways to install packages, and it's much faster than pip:
+**Project-first (recommended once you have `pyproject.toml`):**
 
 ```bash
-# Install a package (like pip install)
+uv add requests
+uv add --dev ruff pytest
+uv remove requests
+uv sync
+```
+
+**pip-compatible interface** (handy for scripts or existing `requirements.txt`):
+
+```bash
 uv pip install requests
-
-# Install multiple packages
-uv pip install requests pandas numpy
-
-# Install from requirements.txt
 uv pip install -r requirements.txt
-
-# Install in development mode
 uv pip install -e .
 ```
 
-### Why uv is Faster
+### Why uv is faster
 
-uv is written in Rust and uses several optimizations:
-- Parallel downloads and installs
-- Efficient caching
-- Smart dependency resolution
-- Pre-built wheel optimization
-
-In practice, uv can be 10-100x faster than pip for many operations.
+uv is written in Rust and optimizes for parallel downloads, caching, and fast resolution. In practice it is often many times faster than pip for common operations.
 
 ## Running Python Programs
 
-Once your virtual environment is set up and activated, running Python programs is straightforward:
-
-### Basic Execution
+### With activation
 
 ```bash
-# Make sure your environment is activated
 source .venv/bin/activate  # macOS/Linux
-# or
-.venv\Scripts\activate  # Windows
+# or: .venv\Scripts\activate  # Windows
 
-# Run your Python script
 python my_script.py
-
-# Or run a module
 python -m my_module
 ```
 
-### Using uv run (Without Activation)
-
-One of uv's most convenient features is the ability to run commands in the virtual environment without explicitly activating it:
+### Using `uv run` (no activation required)
 
 ```bash
-# Run a Python script using the project's environment
+# Run a script in the project environment
 uv run python my_script.py
 
-# Run a module
-uv run python -m pytest
-
-# Run installed command-line tools
-uv run black .
+# Run tools declared in the project
+uv run pytest
 uv run ruff check .
+
+# One-off tool without adding it permanently
+uvx ruff check .
 ```
 
-This is particularly useful in scripts and CI/CD pipelines where you don't want to worry about activation.
+`uv run` is ideal for local scripts and CI: no need to remember `source .venv/bin/activate`.
 
 ## Best Practices
 
@@ -222,22 +230,22 @@ deactivate
 ### uv
 
 ```bash
-# Create
+# New project
+uv init myapp && cd myapp
+uv add package_name
+uv add --dev ruff pytest
+uv sync
+
+# Or only a venv
 uv venv
-
-# Activate (macOS/Linux)
-source .venv/bin/activate
-
-# Activate (Windows)
-.venv\Scripts\activate
-
-# Install packages
-uv pip install package_name
+source .venv/bin/activate   # optional on macOS/Linux
+.venv\Scripts\activate      # optional on Windows
 
 # Run without activation
 uv run python script.py
+uv run pytest
 
-# Deactivate
+# Deactivate (if you activated)
 deactivate
 ```
 

@@ -4,12 +4,12 @@
 
 ## What are LLMs?
 
-Large Language Models (LLMs) are AI systems trained on vast amounts of text data that can understand and generate human-like text. In recent years, LLMs have revolutionized software development by providing intelligent code completion, generation, and assistance.
+Large Language Models (LLMs) are AI systems trained on vast amounts of text data that can understand and generate human-like text. In recent years, LLMs have become a core part of software development: code completion, generation, review, refactoring, and multi-step agent workflows.
 
 ## Benefits of LLMs in Python Development
 
 ### 1. Accelerated Development
-LLMs can generate boilerplate code, implement common patterns, and help you write code faster.
+LLMs can generate boilerplate, implement common patterns, and help you write code faster.
 
 ### 2. Learning and Discovery
 Get explanations of complex code, learn new libraries, and discover best practices as you work.
@@ -18,476 +18,459 @@ Get explanations of complex code, learn new libraries, and discover best practic
 LLMs can suggest improvements, identify potential bugs, and help refactor code.
 
 ### 4. Documentation Assistance
-Generate docstrings, write tests, and create documentation more efficiently.
+Generate docstrings, write tests, and draft documentation more efficiently.
 
 ### 5. Problem Solving
 Get help debugging errors, understanding error messages, and finding solutions to coding challenges.
 
 ### 6. Reduced Context Switching
-Get answers and generate code without leaving your editor, reducing the need to search documentation or Stack Overflow.
+Get answers and generate code without leaving your editor or terminal as often.
 
-## AI-Powered Development Tools
+## Categories of AI Development Tools
 
-Several tools integrate LLMs into the development workflow. Let's explore the major options.
+| Category | Examples | Best for |
+|----------|----------|----------|
+| Editor / IDE assistants | GitHub Copilot, Cursor | Inline completion, chat in the IDE |
+| Terminal coding agents | Claude Code, Codex, Grok Build | Multi-step tasks, repo-wide edits, running commands |
+| Platform-integrated | GitHub Copilot (PRs, reviews) | Code review and collaboration on GitHub |
+
+AI tools change quickly. Prefer official docs for install steps and pricing, and treat the examples below as a starting map rather than permanent API truth.
+
+## GitHub Copilot
+
+[GitHub Copilot](https://github.com/features/copilot) is GitHub’s AI pair programmer. It works inside popular editors and across the GitHub product surface (chat, PR assistance, code review workflows).
+
+### Key Features
+
+- **Inline completions**: Suggests lines and whole functions as you type (accept with Tab)
+- **Copilot Chat**: Ask questions, explain code, refactor, and generate tests in the editor
+- **Agent mode**: Multi-step tasks across files with more autonomy than single completions
+- **Editor support**: VS Code, JetBrains IDEs, Neovim, Visual Studio, and others
+- **GitHub integration**: Assistance in pull requests, reviews, and related GitHub workflows
+- **Multi-model options**: Plan tiers may offer choice among models (check current product docs)
+
+### Getting Started
+
+1. Get a Copilot-enabled plan via [GitHub Copilot](https://github.com/features/copilot)
+2. Install the Copilot extension for your editor (for VS Code: Extensions → “GitHub Copilot”)
+3. Sign in with your GitHub account
+4. Start coding — suggestions appear as gray ghost text; use Chat for larger tasks
+
+### Using Copilot for Python
+
+**Typical workflows:**
+
+1. **Complete a function**  
+   Write a clear function signature and docstring; accept or edit the suggested body.
+
+2. **Chat for a feature**  
+   Open Copilot Chat and ask: “Add pytest tests for `calculate_total` with edge cases for empty lists.”
+
+3. **Explain code**  
+   Select a block → ask Copilot Chat to explain it step by step.
+
+4. **Agent-style tasks**  
+   Use agent mode for multi-file changes (for example: “Add type hints to all modules under `src/`”).
+
+### Tips
+
+- Prefer specific prompts (“validate email with regex, return bool, type hints, Google-style docstring”)
+- Use project/custom instructions where your plan supports them so Copilot follows team conventions
+- Always run your usual quality gate: Ruff, type checker, and pytest on AI-written code
+
+### Links
+
+- [GitHub Copilot](https://github.com/features/copilot)
+- [Copilot documentation](https://docs.github.com/en/copilot)
 
 ## Cursor
 
-[Cursor](https://cursor.sh) is an AI-powered code editor built on VSCode. It integrates LLMs directly into the editing experience.
+[Cursor](https://cursor.com) is an AI-first code editor built as a fork of VS Code. It embeds chat, inline edit, and multi-file agent workflows deeply into the editing experience.
 
 ### Key Features
 
-- **AI Chat**: Ask questions about your codebase in natural language
-- **Inline Editing**: AI can edit code directly in your files
-- **Codebase Understanding**: AI has context about your entire project
-- **Multi-file Editing**: Make changes across multiple files
-- **Terminal Integration**: AI assistance in the terminal
+- **AI chat** with codebase context
+- **Inline editing** (for example Cmd+K / Ctrl+K style flows)
+- **Multi-file edits** across a project
+- **VS Code familiarity**: extensions and keybindings feel familiar if you already use VS Code
 
-### Getting Started with Cursor
+### Getting Started
 
-1. **Download**: Visit [cursor.sh](https://cursor.sh) and download for your OS
-2. **Import Settings**: Import your VSCode settings and extensions
-3. **Add API Key**: Configure your OpenAI or Anthropic API key
-4. **Start Coding**: Use Cmd+K (Mac) or Ctrl+K (Windows) for inline AI editing
+1. Download from [cursor.com](https://cursor.com)
+2. Import VS Code settings/extensions if you want
+3. Sign in / choose a plan per Cursor’s current product options
+4. Use inline edit and chat while working in the project root so the AI sees your codebase
 
-### Using Cursor for Python Development
+### Using Cursor for Python
 
-**Example workflow:**
+1. **Generate a function** — position the cursor, invoke inline AI, describe the function  
+2. **Refactor** — select code, ask to use dataclasses / type hints / async  
+3. **Tests** — select a module, ask for pytest coverage including edge cases  
+4. **Explain** — select complex code and ask for a step-by-step explanation  
 
-1. **Generate a function:**
-   - Select code or position cursor
-   - Press Cmd+K / Ctrl+K
-   - Type: "Create a function to validate email addresses"
-   - AI generates the code
+### Tips
 
-2. **Refactor code:**
-   - Select existing code
-   - Press Cmd+K / Ctrl+K
-   - Type: "Refactor this to use dataclasses"
-   - AI refactors your code
-
-3. **Add tests:**
-   - Select a function
-   - Press Cmd+K / Ctrl+K
-   - Type: "Generate pytest tests for this function"
-   - AI creates comprehensive tests
-
-4. **Explain code:**
-   - Select complex code
-   - Press Cmd+L / Ctrl+L for chat
-   - Ask: "What does this code do?"
-   - Get detailed explanations
-
-### Cursor Tips
-
-- Use specific prompts for better results
-- Leverage the "Apply to All" feature for consistent changes
-- Use the codebase indexing feature for better context
-- Review AI-generated code before accepting
+- Be specific in prompts
+- Review every apply/accept before committing
+- Keep Ruff + pytest as the source of truth for quality
 
 ### Links
 
-- [Cursor Website](https://cursor.sh)
-- [Cursor on GitHub](https://github.com/cursor-ai/cursor)
-- [Cursor Documentation](https://cursor.sh/docs)
-
-## Antigravity
-
-[Antigravity](https://antigravity.com) is an AI coding assistant focused on natural language to code generation.
-
-### Key Features
-
-- **Natural Language Interface**: Describe what you want in plain English
-- **Context-Aware**: Understands your codebase and coding style
-- **Multi-Language Support**: Works with Python and many other languages
-- **Integration Options**: Works with popular editors
-
-### Using Antigravity
-
-Antigravity focuses on translating high-level descriptions into working code:
-
-**Example:**
-```
-You: "Create a Python function that fetches user data from an API,
-     validates it, and saves it to a database with error handling"
-
-Antigravity: [Generates complete function with API calls, validation,
-              database operations, and error handling]
-```
-
-### Links
-
-- [Antigravity Website](https://antigravity.com)
-- [Antigravity on GitHub](https://github.com/antigravity-ai/antigravity)
-
-**Note**: Check the official website for the latest installation and usage instructions.
+- [Cursor website](https://cursor.com)
+- [Cursor documentation](https://cursor.com/docs)
 
 ## Claude Code
 
-[Claude Code](https://github.com/anthropics/claude-code) is Anthropic's official CLI tool that brings Claude AI to your terminal and development workflow.
+[Claude Code](https://github.com/anthropics/claude-code) is Anthropic’s agentic coding tool for the terminal (and related workflows). It can read and edit files, run commands, and work through multi-step engineering tasks.
 
 ### Key Features
 
-- **Terminal Integration**: AI assistance directly in your terminal
-- **Codebase Analysis**: Understands your project structure and code
-- **File Operations**: Can read, write, and edit files
-- **Multi-Step Tasks**: Handles complex workflows autonomously
-- **Tool Use**: Can run commands, tests, and other tools
-- **Git Integration**: Helps with commits, PRs, and git workflows
+- Terminal-first agent workflow
+- Codebase-aware analysis and edits
+- Multi-step tasks (implement, test, fix, commit help)
+- Strong fit for refactoring, debugging, and “do this across the repo” work
 
 ### Installing Claude Code
 
+Prefer the **native installer** (recommended by Anthropic; no Node.js required):
+
 ```bash
-# Using curl (macOS/Linux)
-curl -fsSL https://claude.ai/install.sh | sh
+# macOS / Linux / WSL
+curl -fsSL https://claude.ai/install.sh | bash
+```
 
-# Or using npm
-npm install -g @anthropic/claude-code
+Alternative (npm delivery of the CLI):
 
-# Verify installation
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+Verify:
+
+```bash
 claude --version
 ```
 
-### Setting Up Claude Code
-
-```bash
-# Authenticate
-claude auth login
-
-# Check setup
-claude doctor
-```
+Follow current auth instructions from the [Claude Code docs](https://docs.anthropic.com/en/docs/claude-code) (account / plan requirements change over time).
 
 ### Using Claude Code
 
-**1. Interactive Mode:**
+**Interactive session:**
+
 ```bash
-# Start interactive session
+cd myproject
 claude
-
-# Then chat with Claude
-> Help me create a Python function to parse CSV files
-
-> Review this file and suggest improvements: src/parser.py
-
-> Write tests for my calculator module
 ```
 
-**2. Command Mode:**
+Then describe tasks in natural language, for example:
+
+```text
+Add a FastAPI health endpoint and pytest coverage for it
+```
+
+**One-shot style prompts** (patterns vary by version; check `claude --help`):
+
 ```bash
-# Generate code
-claude "Create a FastAPI application with user authentication"
-
-# Review code
-claude "Review the code in src/api.py and suggest improvements"
-
-# Generate tests
-claude "Write pytest tests for all functions in src/utils.py"
+claude "Review src/parser.py for edge cases and suggest tests"
 ```
 
-**3. File Operations:**
+### Example Python workflows
+
 ```bash
-# Claude can read and edit files
-claude "Refactor src/database.py to use async/await"
+# New module
+claude "Create a small auth module with password hashing and JWT helpers"
 
-# Multi-file changes
-claude "Add type hints to all Python files in src/"
-```
+# Tests
+claude "Write pytest tests for src/auth.py including failure cases"
 
-**4. Git Integration:**
-```bash
-# Help with commit messages
-claude "Review my changes and create a good commit message"
-
-# Create pull requests
-claude "Create a PR for the current branch"
-```
-
-### Claude Code for Python Development
-
-**Example workflows:**
-
-**1. Creating a new module:**
-```bash
-claude "Create a Python module for handling user authentication
-        with password hashing, JWT tokens, and session management"
-```
-
-**2. Adding tests:**
-```bash
-claude "Generate comprehensive pytest tests for src/auth.py
-        including fixtures and parametrized tests"
-```
-
-**3. Code review:**
-```bash
-claude "Review src/api.py for potential bugs, security issues,
-        and style improvements"
-```
-
-**4. Refactoring:**
-```bash
-claude "Refactor src/legacy.py to use modern Python 3.11 features
-        and improve performance"
-```
-
-**5. Documentation:**
-```bash
-claude "Add comprehensive docstrings to all functions in src/
-        following Google style"
-```
-
-### Claude Code Configuration
-
-Create a `.claude-code` configuration file:
-
-```json
-{
-  "model": "claude-sonnet-4.5",
-  "temperature": 0.7,
-  "max_tokens": 4096,
-  "auto_lint": true,
-  "auto_format": true,
-  "test_framework": "pytest"
-}
-```
-
-### Integration with Development Workflow
-
-**1. Pre-commit hooks with Claude:**
-```bash
-# .git/hooks/pre-commit
-#!/bin/bash
-claude "Review staged changes for issues" --exit-on-error
-```
-
-**2. CI/CD integration:**
-```yaml
-# .github/workflows/claude-review.yml
-name: Claude Code Review
-
-on: [pull_request]
-
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Claude Code
-        run: npm install -g @anthropic/claude-code
-      - name: Review PR
-        run: claude "Review this PR for potential issues"
+# Quality pass
+claude "Run ruff and pytest, then fix any issues you introduced"
 ```
 
 ### Links
 
 - [Claude Code on GitHub](https://github.com/anthropics/claude-code)
-- [Claude Code Documentation](https://docs.anthropic.com/claude-code)
-- [Claude AI Platform](https://claude.ai)
+- [Claude Code documentation](https://docs.anthropic.com/en/docs/claude-code)
+
+## OpenAI Codex
+
+[OpenAI Codex](https://openai.com/codex/) (including the open-source [Codex CLI](https://github.com/openai/codex)) is OpenAI’s coding agent family. The CLI runs in your terminal, can inspect a repository, edit files, and run commands. Codex also appears in ChatGPT / cloud workflows depending on product availability.
+
+### Key Features
+
+- Terminal coding agent with repo context
+- Multi-step implementation and debugging loops
+- Local-first CLI workflows (edit + run on your machine)
+- Ecosystem ties to OpenAI accounts / ChatGPT plans where applicable
+- Editor integrations may be available for hybrid IDE + agent use
+
+### Installing Codex CLI
+
+Check the official install path for your OS. Common patterns:
+
+```bash
+# Example: install via npm (verify current package name in docs)
+npm install -g @openai/codex
+
+# Or follow the GitHub README for the recommended installer
+# https://github.com/openai/codex
+```
+
+Authenticate per current OpenAI / Codex documentation, then run from a project directory:
+
+```bash
+cd myproject
+codex
+```
+
+### Using Codex for Python
+
+Typical tasks:
+
+```bash
+# Interactive agent
+codex
+
+# Task-oriented prompts (exact flags depend on CLI version)
+codex "Add a CLI entry point with Typer and a --verbose flag"
+codex "Fix the failing pytest in tests/test_main.py"
+```
+
+**Good fits:**
+
+- Implementing features with tests in a tight loop  
+- Repo exploration and refactoring  
+- Teams already standardized on OpenAI models  
+
+### Tips
+
+- Keep an `AGENTS.md` or project instructions file if the agent supports it, so conventions (Ruff, pytest, uv) are explicit  
+- Prefer small, reviewable diffs over huge unreviewed rewrites  
+- Always re-run `uv run pytest` and `uv run ruff check .` after agent edits  
+
+### Links
+
+- [OpenAI Codex](https://openai.com/codex/)
+- [Codex CLI on GitHub](https://github.com/openai/codex)
+
+## Grok Build
+
+**Grok Build** is xAI’s AI-assisted software engineering environment (terminal UI / agent workflows powered by Grok models). It is designed for multi-step coding work: exploring a codebase, editing files, running commands, and iterating until tests and checks pass.
+
+### Key Features
+
+- Agent-style development in a terminal UI
+- Project-aware edits (read, search, patch files)
+- Command execution for builds, tests, and linters
+- Strong fit for “implement this feature end-to-end” tasks
+- Skills / structured workflows for common engineering jobs (review, plan, execute)
+
+### Getting Started
+
+Follow current xAI / Grok product documentation for access and install. Once available in your environment:
+
+1. Open your project directory  
+2. Start Grok Build  
+3. Describe the outcome you want (not only a single file change)  
+4. Review diffs, then run your quality tools  
+
+### Using Grok Build for Python
+
+Example prompts that work well with this tutorial’s stack:
+
+```text
+Set up this repo with uv, Ruff, pytest, and a GitHub Actions CI workflow
+matching our existing pyproject.toml conventions.
+
+Add SQLModel models and a FastAPI CRUD API for a Hero resource,
+with pytest + httpx TestClient coverage.
+
+Review uncommitted changes for security issues and missing tests.
+```
+
+### Tips
+
+- Point the agent at your golden `pyproject.toml` and CI config so it follows project standards  
+- Ask it to **run** `uv run ruff check .`, `uv run pytest`, and type checks rather than only generate code  
+- Treat Grok Build like a junior teammate: clear requirements, incremental tasks, human review  
+
+### Links
+
+- [xAI](https://x.ai/)
+- Product and install details: see current Grok / xAI developer documentation for Grok Build
 
 ## Comparing AI Development Tools
 
-| Feature | Cursor | Antigravity | Claude Code |
-|---------|--------|-------------|-------------|
-| Interface | GUI (Editor) | GUI/CLI | CLI |
-| Base | VSCode fork | Standalone | Terminal |
-| Codebase Context | Excellent | Good | Excellent |
-| Multi-file Editing | Yes | Yes | Yes |
-| Terminal Integration | Built-in | Limited | Native |
-| Git Integration | Basic | Basic | Advanced |
-| Learning Curve | Low | Low | Medium |
-| Cost | Subscription | Subscription | Pay-per-use |
-| Offline Mode | No | No | No |
+| Feature | GitHub Copilot | Cursor | Claude Code | Codex | Grok Build |
+|---------|----------------|--------|-------------|-------|------------|
+| Primary interface | Editor + GitHub | AI IDE (VS Code fork) | Terminal agent | Terminal agent (+ ecosystem) | Terminal / agent UI |
+| Inline completion | Excellent | Excellent | Limited (agent-first) | Varies | Agent-first |
+| Multi-file agents | Yes (agent mode) | Yes | Yes | Yes | Yes |
+| Runs shell commands | Via agent / CLI | Via agent features | Yes | Yes | Yes |
+| GitHub-native workflows | Strong | Basic | Strong via CLI | Varies | Varies |
+| Learning curve | Low | Low | Medium | Medium | Medium |
+| Typical access model | Subscription (GitHub) | Subscription | Plan / API (Anthropic) | OpenAI / ChatGPT ecosystem | xAI / Grok product |
+
+Plans, models, and pricing change often — confirm on each product’s site before adopting for a team.
 
 ## Best Practices for AI-Assisted Development
 
 ### 1. Review All Generated Code
 
 Never blindly accept AI-generated code. Always review for:
-- Correctness
-- Security issues
-- Performance concerns
-- Code style consistency
+
+- Correctness  
+- Security issues  
+- Performance concerns  
+- Consistency with project style  
 
 ### 2. Provide Context
 
-The more context you provide, the better the results:
+**Weak:**
 
-**Bad:**
-```
-"Write a function"
+```text
+Write a function
 ```
 
-**Good:**
-```
-"Write a Python function that validates email addresses using regex,
-returns a boolean, and includes type hints and docstrings"
+**Strong:**
+
+```text
+Write a Python function that validates email addresses with a regex,
+returns bool, includes type hints and a short docstring with examples.
+Use the project's Ruff-formatted style.
 ```
 
 ### 3. Iterate and Refine
 
-Don't expect perfect results on the first try:
-```
-1. Generate initial code
-2. Review and identify issues
-3. Ask AI to fix specific problems
-4. Repeat until satisfied
-```
+1. Generate initial code  
+2. Review and identify issues  
+3. Ask the tool to fix specific problems  
+4. Re-run tests and linters  
 
 ### 4. Use AI for Learning
 
-Ask questions to understand the code:
-```
-"Explain how this function works step by step"
-"Why did you use this pattern instead of that one?"
-"What are the trade-offs of this approach?"
+```text
+Explain how this function works step by step
+Why this pattern instead of X?
+What are the trade-offs?
 ```
 
 ### 5. Combine with Traditional Tools
 
-AI tools complement but don't replace:
-- Linters (catch additional issues)
-- Type checkers (verify type safety)
-- Tests (ensure correctness)
-- Code review (human judgment)
+AI complements — it does not replace:
+
+- Linters (Ruff)  
+- Type checkers (ty / mypy)  
+- Tests (pytest)  
+- Human code review  
 
 ### 6. Be Specific About Requirements
 
-```
-"Create a function that:
+```text
+Create a function that:
 - Accepts a list of integers
-- Returns the median value
-- Handles empty lists by returning None
+- Returns the median, or None for empty input
 - Includes type hints
-- Has docstring with examples
-- Raises TypeError for non-integer values"
+- Has a docstring with examples
+- Raises TypeError for non-integer values
 ```
 
 ### 7. Test AI-Generated Code
 
-Always write or generate tests for AI code:
 ```bash
-claude "Generate the function"
-claude "Now write comprehensive tests for this function"
-pytest
+# After AI edits
+uv run ruff check .
+uv run ruff format --check .
+uv run pytest
 ```
 
-### 8. Maintain Code Quality Standards
+### 8. Keep Secrets Out of Prompts
 
-Run your quality tools on AI-generated code:
-```bash
-# After AI generates code
-ruff check .
-ruff format .
-mypy src/
-pytest
+Never paste:
+
+- API keys or passwords  
+- Private customer data  
+- Production credentials  
+
+Use environment variables and `.env` files that stay out of git (see [Chapter 4](./04-version-control.md)).
+
+## Practical Example: Building a Feature with an Agent
+
+Using a terminal agent (Claude Code, Codex, or Grok Build):
+
+**1. Planning**
+
+```text
+Help me plan a small user authentication module for a FastAPI app.
+List components and implementation order. Prefer uv + pytest + Ruff.
 ```
 
-## Practical Example: Building a Feature with AI
+**2. Implementation**
 
-Let's use Claude Code to build a complete feature:
-
-**1. Planning:**
-```bash
-claude "Help me plan a user authentication system for a FastAPI app.
-        List the components I'll need and the implementation order."
+```text
+Create a user model, password hashing helpers, and JWT issue/verify functions.
 ```
 
-**2. Implementation:**
-```bash
-claude "Create a user model with email, password hash, and timestamps"
+**3. Testing**
 
-claude "Create password hashing utilities using bcrypt"
-
-claude "Create JWT token generation and validation functions"
-
-claude "Create FastAPI endpoints for register, login, and logout"
+```text
+Generate pytest tests with fixtures, happy paths, and failure cases.
 ```
 
-**3. Testing:**
-```bash
-claude "Generate pytest tests for the authentication system including
-        fixtures, happy paths, and error cases"
+**4. Quality**
+
+```text
+Run ruff and pytest; fix anything that fails.
 ```
 
-**4. Documentation:**
-```bash
-claude "Add docstrings to all functions in src/auth.py"
+**5. Review**
 
-claude "Create a README.md section explaining how to use the auth system"
-```
-
-**5. Code Review:**
-```bash
-claude "Review the authentication system for security issues
-        and best practices"
+```text
+Review the auth module for security issues and missing edge cases.
 ```
 
 ## Security Considerations
 
-### 1. Don't Share Sensitive Data
+1. **Do not share secrets** with any AI tool  
+2. **Review for injection and auth bugs** in generated web/DB code  
+3. **Prefer env vars** for configuration:
 
-Never paste:
-- API keys or passwords
-- Personal information
-- Proprietary business logic
-- Private data
-
-### 2. Review for Security Issues
-
-Check AI-generated code for:
-- SQL injection vulnerabilities
-- XSS vulnerabilities
-- Insecure authentication
-- Hardcoded secrets
-- Unsafe deserialization
-
-### 3. Use Environment Variables
-
-Always use environment variables for secrets:
 ```python
-# Good - AI should generate this
 import os
-API_KEY = os.getenv("API_KEY")
 
-# Bad - never do this
-API_KEY = "sk-1234567890abcdef"
+API_KEY = os.environ["API_KEY"]  # fail fast if missing
 ```
-
-## Future of AI in Development
-
-AI tools are rapidly evolving:
-
-- **Better Context**: Larger context windows for entire codebases
-- **Improved Accuracy**: More reliable code generation
-- **Specialized Models**: Models trained specifically for coding
-- **Better Integration**: Deeper integration with development tools
-- **Autonomous Agents**: AI agents that can complete entire features
-
-Stay updated with the latest developments to leverage these tools effectively.
 
 ## Quick Reference
 
-```bash
+```text
+# GitHub Copilot (VS Code)
+# - Install GitHub Copilot + Copilot Chat extensions
+# - Tab to accept completions; open Chat for larger tasks
+
 # Cursor
-Cmd+K / Ctrl+K    # Inline AI editing
-Cmd+L / Ctrl+L    # Open AI chat
-Cmd+Shift+L       # Quick actions
+# Cmd/Ctrl+K  inline edit
+# Cmd/Ctrl+L  chat (typical defaults; confirm in your build)
 
 # Claude Code
-claude            # Interactive mode
-claude "prompt"   # Single command
-claude --help     # Show help
+claude
+claude "Implement X and add tests"
 
-# Best practices
-1. Review all generated code
-2. Provide detailed context
-3. Iterate and refine
-4. Test thoroughly
-5. Run quality checks
+# Codex CLI
+codex
+codex "Implement X and add tests"
+
+# Grok Build
+# Start from your project root; describe the full outcome
+# Ask the agent to run: uv run ruff check . && uv run pytest
+
+# Always
+uv run ruff check .
+uv run pytest
 ```
 
 ## What's Next?
 
-Now that you've learned about all the essential tools and practices, let's put everything together in a complete project workflow.
+AI tools speed up implementation, but data and APIs still need solid libraries. Next: database access with DBAPI, SQLAlchemy, and SQLModel.
 
 [← Previous: CI/CD](./10-ci-cd.md) | [Back to README](./README.md) | [Next: Database Libraries →](./12-database-libraries.md)

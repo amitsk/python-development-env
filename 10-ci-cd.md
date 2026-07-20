@@ -112,7 +112,6 @@ Create `.github/workflows/ci.yml`:
 ```yaml
 name: CI
 
-# Run on push to main and on all pull requests
 on:
   push:
     branches: [main]
@@ -124,57 +123,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Set up Python
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      # Install uv
       - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      # Install dependencies
-      - name: Install dependencies
-        run: |
-          uv venv
-          uv pip install -e ".[dev]"
-
-      # Run linting
-      - name: Lint with Ruff
-        run: |
-          source .venv/bin/activate
-          ruff check .
-
-      # Check formatting
-      - name: Check formatting with Ruff
-        run: |
-          source .venv/bin/activate
-          ruff format --check .
-
-      # Run type checking
-      - name: Type check with mypy
-        run: |
-          source .venv/bin/activate
-          mypy src/
-
-      # Run tests
-      - name: Run tests
-        run: |
-          source .venv/bin/activate
-          pytest --cov=src --cov-report=xml
-
-      # Upload coverage
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: astral-sh/setup-uv@v5
         with:
-          file: ./coverage.xml
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Lint with Ruff
+        run: uv run ruff check .
+
+      - name: Check formatting with Ruff
+        run: uv run ruff format --check .
+
+      - name: Type check
+        run: uv run ty check src/
+
+      - name: Run tests
+        run: uv run pytest --cov=src --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
 ```
 
 ### Understanding the Workflow
@@ -185,58 +163,13 @@ jobs:
 4. **runs-on**: Operating system for the runner
 5. **steps**: Sequential tasks in the job
 
-### Optimized Workflow with Caching
+### Caching
 
-Speed up workflows by caching dependencies:
-
-```yaml
-name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'  # Cache pip dependencies
-
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-
-      - name: Cache uv
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('**/pyproject.toml') }}
-
-      - name: Install dependencies
-        run: |
-          uv venv
-          uv pip install -e ".[dev]"
-
-      - name: Run quality checks
-        run: |
-          source .venv/bin/activate
-          ruff check .
-          ruff format --check .
-          mypy src/
-          pytest --cov=src
-```
+`astral-sh/setup-uv` with `enable-cache: true` caches uv’s download cache. Combined with `uv.lock`, installs stay fast and reproducible.
 
 ## Matrix Testing
 
-Test against multiple Python versions:
+Test against multiple Python versions (skip EOL releases such as 3.9):
 
 ```yaml
 name: CI
@@ -247,28 +180,27 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.11', '3.12', '3.13']
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: |
-          pip install uv
-          uv venv
-          uv pip install -e ".[dev]"
+        run: uv sync
 
       - name: Run tests
-        run: |
-          source .venv/bin/activate  # Use appropriate activation for OS
-          pytest
+        run: uv run pytest
 ```
 
 ## Multiple Jobs
@@ -285,45 +217,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install ruff
-      - run: ruff check .
-
-  format:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install ruff
-      - run: ruff format --check .
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install 3.12
+      - run: uv sync
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
 
   typecheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install mypy
-      - run: mypy src/
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install 3.12
+      - run: uv sync
+      - run: uv run ty check src/
 
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install pytest pytest-cov
-      - run: pytest --cov=src
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install 3.12
+      - run: uv sync
+      - run: uv run pytest --cov=src
 
-  # This job only runs if all others succeed
   all-checks-passed:
-    needs: [lint, format, typecheck, test]
+    needs: [lint, typecheck, test]
     runs-on: ubuntu-latest
     steps:
       - run: echo "All checks passed!"
@@ -345,46 +264,22 @@ on:
     types: [published]
 
 env:
-  PYTHON_VERSION: '3.11'
+  PYTHON_VERSION: '3.12'
 
 jobs:
   quality:
     name: Code quality checks
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-
-      - name: Install uv
-        run: pip install uv
-
-      - name: Create virtual environment
-        run: uv venv
-
-      - name: Install dependencies
-        run: uv pip install -e ".[dev]"
-
-      - name: Lint with Ruff
-        run: |
-          source .venv/bin/activate
-          ruff check . --output-format=github
-
-      - name: Check formatting
-        run: |
-          source .venv/bin/activate
-          ruff format --check .
-
-      - name: Type check with mypy
-        run: |
-          source .venv/bin/activate
-          mypy src/ --pretty
+          enable-cache: true
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - run: uv sync
+      - run: uv run ruff check . --output-format=github
+      - run: uv run ruff format --check .
+      - run: uv run ty check src/
 
   test:
     name: Test Python ${{ matrix.python-version }}
@@ -393,57 +288,39 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.11', '3.12', '3.13']
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          pip install uv
-          uv pip install -e ".[dev]"
-
-      - name: Run tests
-        run: |
-          pytest -v --cov=src --cov-report=xml --cov-report=term
+          enable-cache: true
+      - run: uv python install ${{ matrix.python-version }}
+      - run: uv sync
+      - run: uv run pytest -v --cov=src --cov-report=xml --cov-report=term
 
       - name: Upload coverage
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
-        uses: codecov/codecov-action@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        uses: codecov/codecov-action@v5
         with:
-          file: ./coverage.xml
-          fail_ci_if_error: true
+          files: ./coverage.xml
 
-  deploy:
-    name: Deploy to PyPI
+  publish:
+    name: Publish to PyPI
     needs: [quality, test]
     runs-on: ubuntu-latest
     if: github.event_name == 'release'
+    permissions:
+      id-token: write  # Trusted Publishing (OIDC)
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install build tools
-        run: pip install build twine
-
-      - name: Build package
-        run: python -m build
-
-      - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: twine upload dist/*
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - run: uv build
+      # Configure Trusted Publishing on PyPI, then:
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
 ```
 
 ## Status Badges
@@ -465,7 +342,7 @@ Add status badges to your README:
 strategy:
   fail-fast: true  # Stop all jobs if one fails
   matrix:
-    python-version: ['3.9', '3.10', '3.11']
+    python-version: ['3.11', '3.12', '3.13']
 ```
 
 ### 2. Use Specific Action Versions
@@ -608,7 +485,7 @@ Now PRs can't be merged until all checks pass!
 ## Quick Reference
 
 ```yaml
-# Basic CI workflow structure
+# Basic CI with uv
 name: CI
 on: [push, pull_request]
 jobs:
@@ -616,24 +493,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.11'
-      - run: pip install -e ".[dev]"
-      - run: pytest
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync
+      - run: uv run pytest
 
 # Matrix testing
 strategy:
   matrix:
-    python-version: ['3.9', '3.10', '3.11']
+    python-version: ['3.11', '3.12', '3.13']
     os: [ubuntu-latest, macos-latest]
 
 # Conditional execution
 if: github.ref == 'refs/heads/main'
 
-# Environment variables
 env:
-  PYTHON_VERSION: '3.11'
+  PYTHON_VERSION: '3.12'
 
 # Secrets
 ${{ secrets.SECRET_NAME }}

@@ -34,7 +34,7 @@ This guide covers the essential tools and practices for modern Python developmen
 1. [Introduction](./01-introduction.md)
    - Background and Context
    - Software Engineering Best Practices
-   - Tools Overview (uv, VSCode)
+   - Tools Overview (uv, VS Code)
 
 2. [Python Virtual Environments](./02-virtual-environments.md)
    - Understanding Virtual Environments
@@ -84,7 +84,7 @@ This guide covers the essential tools and practices for modern Python developmen
 
 11. [LLMs and AI-Powered Development](./11-llms.md)
     - AI in Python Development
-    - Cursor, Antigravity, and Claude Code
+    - GitHub Copilot, Cursor, Claude Code, Codex, and Grok Build
     - Best Practices with AI Tools
 
 12. [Database Libraries](./12-database-libraries.md)
@@ -119,9 +119,17 @@ This guide covers the essential tools and practices for modern Python developmen
 - A computer running Windows, macOS, or Linux
 - Willingness to use the command line/terminal
 
+## Core vs optional tracks
+
+**Core (recommended first):** Chapters 1–10 and 16 — environments, dependencies, Git, Ruff, pytest, types, logging, CI/CD, then a full project setup.
+
+**Optional modules:** Chapters 11–15 — AI coding tools, databases, FastAPI, AWS Lambda, and CLI libraries. Read them when you need those skills.
+
 ## Getting Started
 
 Start with [Chapter 1: Introduction](./01-introduction.md) to begin your journey toward professional Python development.
+
+**Last reviewed:** July 2026 (Python 3.12+ examples; uv project workflow; Ruff lint config; AI tooling chapter refreshed).
 
 ## Contributing
 

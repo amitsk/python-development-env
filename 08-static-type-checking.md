@@ -272,78 +272,61 @@ def get_age() -> int:
 
 ### Why ty?
 
-**Blazing Fast:**
-- 10-100x faster than mypy and Pyright
-- Optimized for IDE responsiveness with fine-grained incremental analysis
+**Fast and IDE-friendly:**
+- Written in Rust for high throughput
+- Fine-grained incremental analysis for editor responsiveness
+- Much faster than classic mypy on large codebases (always measure for your repo)
 
 **Developer-Friendly:**
-- Comprehensive diagnostics with rich contextual information
+- Clear diagnostics
 - Configurable rule levels and per-file overrides
-- Supports partially typed codebases for easier adoption
+- Works well with partially typed codebases
 
 **Modern Features:**
-- Advanced type narrowing and intersection types
 - Built-in language server for IDE integration
-- Auto-import, code navigation, and completions
+- Project-aware configuration via `pyproject.toml`
 
 ### Installing and Using ty
 
 ```bash
-# Run directly with uvx (no installation needed)
+# Run without a permanent install
 uvx ty check
 
-# Or install with uv
-uv pip install ty
+# Or add as a dev dependency
+uv add --dev ty
 
-# Check your code
-ty check
-
-# Watch mode for continuous checking
-ty check --watch
-
-# Check specific files or directories
-ty check src/
-ty check script.py
+uv run ty check
+uv run ty check src/
+uv run ty check script.py
 ```
 
 ### Configuration
 
-Create `pyproject.toml` configuration:
+Check [ty’s configuration docs](https://docs.astral.sh/ty/reference/configuration/) for the latest keys. A common shape:
 
 ```toml
-[tool.ty]
-# Python version
-python-version = "3.11"
+[tool.ty.environment]
+python-version = "3.12"
 
-# Type checking strictness
-strict = true
+[tool.ty.src]
+include = ["src", "tests"]
+exclude = [".venv", "build"]
 
-# Exclude patterns
-exclude = [
-    ".git",
-    ".venv",
-    "__pycache__",
-]
-
-# Include patterns
-include = ["src/**/*.py", "tests/**/*.py"]
-
-# Per-file configuration
-[[tool.ty.overrides]]
-files = ["tests/**"]
-disallow-untyped-defs = false
+[tool.ty.rules]
+# Example: tune individual rules ("error" | "warn" | "ignore")
+# possibly-unresolved-reference = "warn"
 ```
 
 ### ty vs mypy
 
 | Feature | ty | mypy |
 |---------|----|----- |
-| Speed | 10-100x faster | Baseline |
+| Speed | Very fast (Rust) | Baseline (Python) |
 | Language | Rust | Python |
-| IDE Support | Built-in language server | External tools |
-| Maturity | New (2024+) | Mature (2012+) |
+| IDE Support | Built-in language server | External / plugins |
+| Maturity | Newer | Mature (2012+) |
 | Community | Growing | Large, established |
-| Configuration | Modern, simple | Comprehensive |
+| Configuration | Modern `tool.ty.*` | Very mature / plugin-rich |
 
 ### Example Usage
 
@@ -560,20 +543,11 @@ Gradually fill in the rest as time permits.
 ## Using Type Checkers with uv
 
 ```bash
-# Install as dev dependencies
-uv pip install --dev mypy ty
+uv add --dev mypy ty
 
-# Run type checking
 uv run mypy src/
 uv run ty check
-
-# Or use uvx to run ty without installation
 uvx ty check
-
-# Add to scripts in pyproject.toml
-[project.scripts]
-typecheck = "ty check src/"
-typecheck-mypy = "mypy src/"
 ```
 
 ## IDE Integration
@@ -696,27 +670,23 @@ class Handler:
 ## Quick Reference
 
 ```bash
-# ty (recommended for new projects)
-uvx ty check                    # Check with uvx (no install)
-ty check                        # Check all files
-ty check --watch                # Watch mode
-ty check src/                   # Check specific directory
+# ty (great default for new projects)
+uvx ty check
+uv run ty check
+uv run ty check src/
 
 # mypy
-mypy .                          # Check all files
-mypy --strict .                 # Strict mode
-mypy --install-types            # Install missing type stubs
-mypy --show-error-codes .       # Show error codes
+uv run mypy .
+uv run mypy --strict .
+uv run mypy --show-error-codes .
 
-# Configuration (pyproject.toml)
-[tool.ty]
-python-version = "3.11"
-strict = true
-
-[tool.mypy]
-python_version = "3.11"
-strict = true
-warn_return_any = true
+# Configuration sketches (pyproject.toml)
+# [tool.ty.environment]
+# python-version = "3.12"
+#
+# [tool.mypy]
+# python_version = "3.12"
+# strict = true
 
 # Common type hints
 def func(a: int, b: str) -> bool: ...
@@ -726,6 +696,6 @@ opt: str | None = None
 
 ## What's Next?
 
-With type checking in place, you're writing more robust code. Next, we'll automate all these quality checks with CI/CD, ensuring every code change meets your standards.
+With type checking in place, you're writing more robust code. Next: **logging** — so production systems report what they do without relying on `print()`.
 
 [← Previous: Unit Testing](./07-unit-testing.md) | [Back to README](./README.md) | [Next: Logging →](./09-logging.md)

@@ -85,14 +85,11 @@ pytest is recommended for most projects.
 ## Installing pytest
 
 ```bash
-# Using uv
-uv pip install pytest
+# As a development dependency (recommended)
+uv add --dev pytest
 
-# Or as a development dependency
-uv pip install --dev pytest
-
-# Verify installation
-pytest --version
+# Verify
+uv run pytest --version
 ```
 
 ## Writing Your First Test
@@ -525,18 +522,13 @@ exclude_lines = [
 ## Running Tests with uv
 
 ```bash
-# Install pytest as dev dependency
-uv pip install --dev pytest pytest-cov
+uv add --dev pytest pytest-cov
 
-# Run tests
 uv run pytest
-
-# With coverage
 uv run pytest --cov=src
 
-# Watch mode (with pytest-watch)
-uv pip install pytest-watch
-uv run ptw
+# Re-run on change (optional tools; pick one you like)
+# e.g. entr, watchexec, or an editor test runner
 ```
 
 ## Best Practices

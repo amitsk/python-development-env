@@ -161,8 +161,7 @@ Ruff's formatter is configured in `pyproject.toml`:
 # Set line length (default: 88, same as Black)
 line-length = 88
 
-# Assume Python 3.11
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.format]
 # Use double quotes for strings (default)
@@ -278,54 +277,48 @@ ruff format .
 Add to your `pyproject.toml`:
 ```toml
 [tool.ruff]
-# Linting config
-select = ["E", "F", "I", "B", "C4", "UP"]
 line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "C4", "UP"]
 
 [tool.ruff.format]
-# Formatting config
 quote-style = "double"
 ```
 
 ### Integration with uv
 
-Run Ruff formatter through uv:
-
 ```bash
-# Install as development dependency
-uv pip install --dev ruff
-
-# Format using uv
+uv add --dev ruff
 uv run ruff format .
 
-# Or use uvx to run without installing
+# Or without adding it permanently
 uvx ruff format .
 ```
 
-### VSCode Integration
+### VS Code Integration
 
-The Ruff VSCode extension handles both linting and formatting:
+Install the official **Ruff** extension from Astral, then configure `.vscode/settings.json`:
 
-**1. Install the Ruff extension**
-
-**2. Configure in `.vscode/settings.json`:**
 ```json
 {
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.formatOnSave": true,
         "editor.codeActionsOnSave": {
-            "source.fixAll.ruff": true,
-            "source.organizeImports.ruff": true
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
         }
-    },
-    "ruff.enable": true
+    }
 }
 ```
 
-Now VSCode will:
+(If the marketplace extension ID changes, use the official Ruff extension from Astral and its documented settings.)
+
+VS Code will then:
 - Format on save
-- Fix linting issues automatically
+- Fix lint issues automatically
 - Organize imports
 
 ### Format on Save vs Format on Commit
@@ -353,12 +346,11 @@ uv pip install pre-commit
 ```yaml
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.9  # Check for latest version
+    # Use a current tag from the releases page
+    rev: v0.12.0
     hooks:
-      # Run the linter
       - id: ruff
         args: [--fix]
-      # Run the formatter
       - id: ruff-format
 ```
 

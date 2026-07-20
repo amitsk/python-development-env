@@ -42,7 +42,7 @@ The `requests` library is a dependency - external code that makes your life easi
 ## Why Manage Dependencies?
 
 ### 1. Reproducibility
-You need to ensure that your code works the same way on different machines. If you use `requests` version 2.31.0, everyone else should use the same version.
+You need to ensure that your code works the same way on different machines. If you use `requests` version 2.32.0, everyone else should use the same version.
 
 ### 2. Collaboration
 Team members need to know exactly which packages your project requires and which versions to install.
@@ -70,7 +70,7 @@ When you install a package, you're typically downloading it from PyPI.
 pip install requests
 
 # Install a specific version
-pip install requests==2.31.0
+pip install requests==2.32.0
 
 # Install the latest version
 pip install --upgrade requests
@@ -91,9 +91,9 @@ The traditional way to manage dependencies is with a `requirements.txt` file:
 
 **requirements.txt:**
 ```
-requests==2.31.0
-pandas==2.1.0
-numpy==1.24.3
+requests==2.32.0
+pandas==2.2.0
+numpy==2.0.0
 ```
 
 Install all requirements:
@@ -135,10 +135,10 @@ uv pip install requests
 uv pip install requests pandas numpy
 
 # Install specific version
-uv pip install requests==2.31.0
+uv pip install requests==2.32.0
 
 # Install with version constraints
-uv pip install "requests>=2.30.0,<3.0.0"
+uv pip install "requests>=2.32.0,<3.0.0"
 ```
 
 ### Working with requirements.txt
@@ -155,74 +155,78 @@ uv pip freeze > requirements.txt
 
 ### Using pyproject.toml (Modern Approach)
 
-The modern way to specify dependencies is using `pyproject.toml`:
+The modern way to specify dependencies is `pyproject.toml`.
+
+**Runtime dependencies** go in `[project.dependencies]`.  
+**Local development tools** (pytest, ruff, type checkers) go in **`[dependency-groups]`** ([PEP 735](https://peps.python.org/pep-0735/)), not in published extras.
 
 **pyproject.toml:**
 ```toml
 [project]
 name = "myapp"
 version = "0.1.0"
+requires-python = ">=3.12"
 dependencies = [
-    "requests>=2.31.0",
-    "pandas>=2.1.0",
-    "numpy>=1.24.0",
+    "requests>=2.32.0",
+    "pandas>=2.2.0",
+    "numpy>=2.0.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "pytest>=7.4.0",
-    "ruff>=0.1.0",
-    "mypy>=1.5.0",
+    "pytest>=8.0.0",
+    "ruff>=0.9.0",
+    "ty",
 ]
 ```
 
-Install project dependencies:
-```bash
-# Install main dependencies
-uv pip install -e .
+> **Optional dependencies vs dependency groups:**  
+> `[project.optional-dependencies]` defines *published extras* (for example `pip install mylib[excel]`).  
+> `[dependency-groups]` is for tools you need only while developing and should not ship as package extras. Prefer groups for pytest/Ruff/ty.
 
-# Install with dev dependencies
-uv pip install -e ".[dev]"
+Install with uv:
+
+```bash
+# Create/update the environment from pyproject.toml + uv.lock
+uv sync
+
+# Production-like install without the default dev group
+uv sync --no-dev
 ```
 
 ### Adding Dependencies with uv
 
-uv provides commands to add dependencies directly:
-
 ```bash
-# Add a dependency (updates pyproject.toml)
+# Add a runtime dependency (updates pyproject.toml + lockfile)
 uv add requests
 
-# Add a dev dependency
+# Add a development dependency (dependency-groups.dev)
 uv add --dev pytest
 
-# Add with version constraint
-uv add "requests>=2.31.0"
+# Add to a named group
+uv add --group lint ruff
+
+# Version constraint
+uv add "requests>=2.32.0"
 ```
 
 ### Removing Dependencies
 
 ```bash
-# Remove a package
 uv remove requests
-
-# Remove from specific group
 uv remove --dev pytest
 ```
 
 ### Lock Files
 
-uv automatically creates and uses lock files (`uv.lock`) that capture the exact versions of all dependencies, including transitive ones:
+uv creates `uv.lock` with exact versions of all dependencies (including transitive ones):
 
 ```bash
-# Install from lock file (exact versions)
-uv sync
-
-# Update dependencies and lock file
-uv lock --upgrade
+uv sync              # install exact versions from the lockfile
+uv lock --upgrade    # refresh the lockfile toward latest allowed versions
 ```
 
-Lock files ensure everyone on your team uses the exact same dependency versions.
+**Commit `uv.lock`** so every developer and CI use the same versions.
 
 ## Practical Example: Building a Web Scraper
 
@@ -231,44 +235,42 @@ Let's build a simple web scraper to demonstrate dependency management.
 ### Step 1: Set Up Project
 
 ```bash
-# Create project directory
-mkdir web-scraper
+uv init web-scraper
 cd web-scraper
-
-# Create virtual environment
-uv venv
-source .venv/bin/activate
 ```
 
-### Step 2: Create pyproject.toml
+### Step 2: Add Dependencies
 
 ```bash
-cat > pyproject.toml << 'EOF'
+uv add "requests>=2.32.0" "beautifulsoup4>=4.12.0"
+uv add --dev "pytest>=8.0.0" "pytest-cov>=5.0.0"
+```
+
+Or write `pyproject.toml` by hand:
+
+```toml
 [project]
 name = "web-scraper"
 version = "0.1.0"
 description = "A simple web scraper"
+requires-python = ">=3.12"
 dependencies = [
-    "requests>=2.31.0",
+    "requests>=2.32.0",
     "beautifulsoup4>=4.12.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "pytest>=7.4.0",
-    "pytest-cov>=4.1.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
 ]
-EOF
 ```
 
 ### Step 3: Install Dependencies
 
 ```bash
-# Install main dependencies
-uv pip install -e .
-
-# Check what was installed
-uv pip list
+uv sync
+uv pip list   # or: uv tree
 ```
 
 ### Step 4: Write the Scraper
@@ -327,10 +329,10 @@ Understanding version constraints is important:
 ```toml
 [project]
 dependencies = [
-    "requests==2.31.0",        # Exact version
-    "pandas>=2.1.0",           # Minimum version
-    "numpy>=1.24.0,<2.0.0",    # Version range
-    "flask~=2.3.0",            # Compatible release (~= 2.3.0 means >=2.3.0, <2.4.0)
+    "requests==2.32.0",        # Exact version
+    "pandas>=2.2.0",           # Minimum version
+    "numpy>=2.0.0,<3.0.0",     # Version range
+    "flask~=3.0.0",            # Compatible release (~= 3.0.0 means >=3.0.0, <3.1.0)
 ]
 ```
 
@@ -342,22 +344,22 @@ Most Python packages follow semantic versioning: `MAJOR.MINOR.PATCH`
 - **MINOR**: New features (backward compatible)
 - **PATCH**: Bug fixes
 
-Example: `requests 2.31.0`
+Example: `requests 2.32.0`
 - Major version: 2
-- Minor version: 31
+- Minor version: 32
 - Patch version: 0
 
 ### Best Practices for Version Constraints
 
 ```toml
 # ✅ Good - allows updates but prevents breaking changes
-"requests>=2.31.0,<3.0.0"
+"requests>=2.32.0,<3.0.0"
 
 # ✅ Good - for stable libraries
-"numpy>=1.24.0"
+"numpy>=2.0.0"
 
 # ⚠️ Use carefully - pins exact version
-"pandas==2.1.0"
+"pandas==2.2.0"
 
 # ❌ Avoid - too permissive
 "requests"
@@ -382,31 +384,31 @@ Separate dependencies into groups:
 **Example pyproject.toml:**
 ```toml
 [project]
+name = "myapp"
+version = "0.1.0"
+requires-python = ">=3.12"
 dependencies = [
-    # Production dependencies only
-    "fastapi>=0.104.0",
+    # Runtime / production dependencies only
+    "fastapi>=0.115.0",
     "sqlalchemy>=2.0.0",
-    "pydantic>=2.4.0",
+    "pydantic>=2.8.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    # Development dependencies
-    "pytest>=7.4.0",
-    "pytest-cov>=4.1.0",
-    "ruff>=0.1.0",
-    "mypy>=1.5.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.9.0",
+    "ty",
 ]
 ```
 
-Install for development:
 ```bash
-uv pip install -e ".[dev]"
-```
+# Development (includes default dev group)
+uv sync
 
-Install for production (no dev deps):
-```bash
-uv pip install .
+# Production-like (no dev tools)
+uv sync --no-dev
 ```
 
 ## Exploring Packages
@@ -469,7 +471,7 @@ uv sync
 Sometimes packages require incompatible versions of the same dependency:
 
 ```
-Package A requires: numpy>=1.24.0,<2.0.0
+Package A requires: numpy>=1.26.0,<2.0.0
 Package B requires: numpy>=2.0.0
 ```
 
@@ -489,13 +491,9 @@ uv's advanced dependency resolver helps avoid many conflicts.
 Check for known vulnerabilities:
 
 ```bash
-# Using pip-audit
-uv pip install pip-audit
+# pip-audit checks known vulnerabilities (recommended)
+uv add --dev pip-audit
 uv run pip-audit
-
-# Using safety
-uv pip install safety
-uv run safety check
 ```
 
 ### Keep Dependencies Updated
@@ -522,10 +520,10 @@ uv pip list --outdated
 
 ```toml
 # Development - flexible
-"requests>=2.31.0"
+"requests>=2.32.0"
 
 # Production - pinned
-"requests==2.31.0"
+"requests==2.32.0"
 ```
 
 ### 2. Use Lock Files
@@ -539,8 +537,8 @@ git commit -m "Update dependencies"
 ### 3. Separate Development Dependencies
 
 ```toml
-[project.optional-dependencies]
-dev = ["pytest", "ruff", "mypy"]
+[dependency-groups]
+dev = ["pytest", "ruff", "ty"]
 ```
 
 ### 4. Document Dependencies
@@ -548,8 +546,8 @@ dev = ["pytest", "ruff", "mypy"]
 Add comments in pyproject.toml:
 ```toml
 dependencies = [
-    "requests>=2.31.0",  # HTTP client for API calls
-    "pandas>=2.1.0",     # Data analysis and manipulation
+    "requests>=2.32.0",  # HTTP client for API calls
+    "pandas>=2.2.0",     # Data analysis and manipulation
 ]
 ```
 
@@ -574,10 +572,10 @@ Only add what you need:
 
 ```toml
 dependencies = [
-    "fastapi>=0.104.0",      # Web framework
-    "uvicorn>=0.24.0",       # ASGI server
+    "fastapi>=0.115.0",      # Web framework
+    "uvicorn>=0.30.0",       # ASGI server
     "sqlalchemy>=2.0.0",     # Database ORM
-    "pydantic>=2.4.0",       # Data validation
+    "pydantic>=2.8.0",       # Data validation
 ]
 ```
 
@@ -585,10 +583,10 @@ dependencies = [
 
 ```toml
 dependencies = [
-    "pandas>=2.1.0",         # Data manipulation
-    "numpy>=1.24.0",         # Numerical computing
-    "matplotlib>=3.8.0",     # Visualization
-    "scikit-learn>=1.3.0",   # Machine learning
+    "pandas>=2.2.0",         # Data manipulation
+    "numpy>=2.0.0",          # Numerical computing
+    "matplotlib>=3.9.0",     # Visualization
+    "scikit-learn>=1.5.0",   # Machine learning
 ]
 ```
 
@@ -596,9 +594,8 @@ dependencies = [
 
 ```toml
 dependencies = [
-    "click>=8.1.0",          # CLI framework
-    "rich>=13.6.0",          # Rich terminal output
-    "typer>=0.9.0",          # Modern CLI framework
+    "typer>=0.12.0",         # Modern CLI (type-hint driven)
+    "rich>=13.7.0",          # Rich terminal output
 ]
 ```
 
@@ -616,25 +613,20 @@ dependencies = []
 EOF
 ```
 
-**Step 2: Add dependencies from requirements.txt**
+**Step 2: Import requirements into the project**
 ```bash
-# Read requirements.txt and add each package
-while read package; do
-    uv add "$package"
-done < requirements.txt
+uv add -r requirements.txt
+# or, for dev-only tools:
+# uv add --dev -r requirements-dev.txt
 ```
 
 **Step 3: Test**
 ```bash
-# Create fresh environment
-uv venv --force
-uv pip install -e .
-
-# Run tests
-pytest
+uv sync
+uv run pytest
 ```
 
-**Step 4: Remove requirements.txt** (optional)
+**Step 4: Remove requirements.txt** (optional once `uv.lock` is committed)
 ```bash
 git rm requirements.txt
 ```
@@ -642,28 +634,29 @@ git rm requirements.txt
 ## Quick Reference
 
 ```bash
-# pip basics
+# pip basics (still useful to know)
 pip install requests
 pip install -r requirements.txt
 pip freeze > requirements.txt
 
-# uv dependency management
-uv add requests                    # Add dependency
-uv add --dev pytest               # Add dev dependency
-uv remove requests                # Remove dependency
-uv pip install -e .               # Install project
-uv pip install -e ".[dev]"        # Install with dev deps
-uv pip list                       # List packages
-uv pip list --outdated            # Show outdated packages
-uv sync                           # Install from lock file
-uv lock --upgrade                 # Update lock file
+# uv project workflow (preferred)
+uv init myapp
+uv add requests
+uv add --dev pytest ruff
+uv remove requests
+uv sync
+uv sync --no-dev
+uv lock --upgrade
+uv run pytest
+uvx ruff check .
 
 # pyproject.toml structure
 [project]
-dependencies = ["requests>=2.31.0"]
+requires-python = ">=3.12"
+dependencies = ["requests>=2.32.0"]
 
-[project.optional-dependencies]
-dev = ["pytest>=7.4.0"]
+[dependency-groups]
+dev = ["pytest>=8.0.0", "ruff>=0.9.0"]
 ```
 
 ## Troubleshooting

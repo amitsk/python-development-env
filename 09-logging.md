@@ -65,10 +65,10 @@ logger.error("Failed to connect to database")
 
 Output:
 ```
-2024-05-01 12:00:00 DEBUG    myapp.main: Debug message
-2024-05-01 12:00:00 INFO     myapp.main: Application started
-2024-05-01 12:00:00 WARNING  myapp.main: Config file not found, using defaults
-2024-05-01 12:00:00 ERROR    myapp.main: Failed to connect to database
+2026-07-01 12:00:00 DEBUG    myapp.main: Debug message
+2026-07-01 12:00:00 INFO     myapp.main: Application started
+2026-07-01 12:00:00 WARNING  myapp.main: Config file not found, using defaults
+2026-07-01 12:00:00 ERROR    myapp.main: Failed to connect to database
 ```
 
 ### Named Loggers
@@ -335,10 +335,10 @@ Picologging is the right choice when:
 
 ### Recommendations
 
-- **New project, small team:** Use **Loguru**. The ergonomics are excellent and the setup is trivial.
-- **Existing codebase using `logging`:** Drop in **Picologging** for a free performance boost.
-- **No external dependencies allowed:** Use the **standard `logging` module**. It covers everything you need.
-- **FastAPI / async service:** Use **Loguru** with a JSON sink — structured logs integrate well with log aggregation services.
+- **New project, small team:** Use **Loguru** for ergonomics, or stdlib `logging` if you want zero extra deps.
+- **Existing codebase using `logging`:** Stay on stdlib, or try **Picologging** when logging is on a hot path and you want a drop-in speedup (evaluate maintenance fit for your stack).
+- **No external dependencies allowed:** Use the **standard `logging` module**.
+- **FastAPI / async service:** Prefer **structured JSON logs** (Loguru `serialize=True`, or stdlib + a JSON formatter) so log aggregators can index fields.
 
 ---
 

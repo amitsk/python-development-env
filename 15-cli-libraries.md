@@ -56,13 +56,11 @@ Typer is built on top of Click, so it inherits Click's reliability and feature s
 uv add typer
 ```
 
-For rich terminal output in help text (recommended):
+Modern Typer installs with the dependencies needed for a good CLI experience (including Rich-powered help in current releases). If you want Rich APIs in your own code (tables, progress bars), add it explicitly:
 
 ```bash
-uv add "typer[all]"
+uv add rich
 ```
-
-The `[all]` extra installs Rich as well, which Typer uses to render more attractive help pages.
 
 ---
 
@@ -973,8 +971,8 @@ version = "0.1.0"
 description = "A handy CLI tool"
 requires-python = ">=3.11"
 dependencies = [
-    "typer[all]>=0.9.0",
-    "rich>=13.0.0",
+    "typer>=0.12.0",
+    "rich>=13.7.0",
 ]
 
 [project.scripts]
@@ -987,10 +985,12 @@ The format is `command-name = "package.module:callable"`. For Typer apps, the ca
 ### Installing in Development Mode
 
 ```bash
-uv pip install -e .
+uv sync
+# or, for a path package without a full uv project workflow:
+# uv pip install -e .
 ```
 
-The `-e` flag installs the package in editable mode: the command is registered in your environment but reads directly from your source files, so changes take effect immediately without reinstalling.
+Editable installs register the command in your environment while reading source files directly, so changes take effect without reinstalling.
 
 After this, you can run:
 

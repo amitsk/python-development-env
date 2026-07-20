@@ -4,16 +4,19 @@
 
 ## Overview
 
-You've learned about all the essential tools for professional Python development:
-- Virtual environments
-- Version control
-- Linting and formatting
-- Unit testing
-- Static type checking
-- CI/CD
-- AI-assisted development
+You've learned the core tools for professional Python development:
 
-Now let's put it all together in a complete, real-world workflow.
+- Virtual environments and **uv** projects
+- Dependencies and lockfiles
+- Version control
+- Linting and formatting (Ruff)
+- Unit testing (pytest)
+- Static type checking
+- Logging
+- CI/CD
+- Optional: AI tools, databases, FastAPI, Lambda, CLIs
+
+This chapter is a **capstone for the core track** (quality tooling + project layout + CI). Use Chapters 12–15 when you need APIs, data, serverless, or CLI libraries.
 
 ## Creating a New Project with uv
 
@@ -27,13 +30,21 @@ mkdir myapp
 cd myapp
 ```
 
-### 2. Initialize Git
+### 2. Initialize with uv (preferred)
 
 ```bash
-# Initialize git repository
+# From an empty myapp/ directory, or use uv init myapp
+uv init --package myapp
+cd myapp   # if you used uv init myapp from the parent
+```
+
+Alternatively, create a layout by hand and add a `pyproject.toml` (below).
+
+### 3. Initialize Git
+
+```bash
 git init
 
-# Create .gitignore
 cat > .gitignore << 'EOF'
 # Virtual environments
 .venv/
@@ -55,6 +66,7 @@ htmlcov/
 
 # Type checking
 .mypy_cache/
+.ty_cache/
 .pytype/
 
 # IDEs
@@ -73,38 +85,8 @@ build/
 EOF
 ```
 
-### 3. Create Virtual Environment with uv
+### 4. Project structure
 
-```bash
-# Install uv if you haven't already
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Create virtual environment
-uv venv
-
-# Activate it
-source .venv/bin/activate  # macOS/Linux
-# or
-.venv\Scripts\activate  # Windows
-```
-
-### 4. Create Project Structure
-
-```bash
-# Create directory structure
-mkdir -p src/myapp tests docs
-
-# Create __init__ files
-touch src/myapp/__init__.py
-touch tests/__init__.py
-
-# Create initial files
-touch src/myapp/main.py
-touch tests/test_main.py
-touch README.md
-```
-
-Your structure should look like:
 ```
 myapp/
 ├── .git/
@@ -120,10 +102,19 @@ myapp/
 ├── docs/
 ├── Makefile
 ├── pyproject.toml
+├── uv.lock
 └── README.md
 ```
 
-### 5. Create pyproject.toml
+Create folders if needed:
+
+```bash
+mkdir -p src/myapp tests docs
+touch src/myapp/__init__.py tests/__init__.py
+touch src/myapp/main.py tests/test_main.py README.md
+```
+
+### 5. Golden pyproject.toml
 
 ```bash
 cat > pyproject.toml << 'EOF'
@@ -135,42 +126,45 @@ authors = [
     {name = "Your Name", email = "your.email@example.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.9"
-dependencies = [
-    # Add your dependencies here
-]
+requires-python = ">=3.12"
+dependencies = []
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "pytest>=7.4.0",
-    "pytest-cov>=4.1.0",
-    "ruff>=0.1.0",
-    "ty>=0.1.0",
-    "pre-commit>=3.5.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.9.0",
+    "ty",
+    "pre-commit>=4.0.0",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/myapp"]
+
 [tool.ruff]
 line-length = 88
-target-version = "py311"
-select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "UP",  # pyupgrade
-]
+target-version = "py312"
 exclude = [
     ".git",
     ".venv",
     "__pycache__",
     "build",
     "dist",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "B",
+    "C4",
+    "UP",
 ]
 
 [tool.ruff.format]
@@ -187,9 +181,11 @@ addopts = [
     "--tb=short",
 ]
 
-[tool.ty]
-python-version = "3.11"
-strict = true
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.ty.src]
+include = ["src", "tests"]
 
 [tool.coverage.run]
 source = ["src"]
@@ -206,11 +202,12 @@ exclude_lines = [
 EOF
 ```
 
-### 6. Install Development Dependencies
+### 6. Install development dependencies
 
 ```bash
-# Install the project in editable mode with dev dependencies
-uv pip install -e ".[dev]"
+uv sync
+# Commit the lockfile for reproducible CI
+# git add uv.lock
 ```
 
 ## Using Cookiecutter Templates
@@ -220,7 +217,8 @@ uv pip install -e ".[dev]"
 ### Installing Cookiecutter
 
 ```bash
-uv pip install cookiecutter
+uv tool install cookiecutter
+# or: uvx cookiecutter ...
 ```
 
 ### Using a Python Library Template
@@ -311,38 +309,38 @@ help:
 
 # Install dependencies
 install:
-	uv pip install -e ".[dev]"
+	uv sync
 
 # Run tests with coverage
 test:
-	pytest --cov=src --cov-report=term-missing --cov-report=html
+	uv run pytest --cov=src --cov-report=term-missing --cov-report=html
 
 # Run linter
 lint:
-	ruff check .
+	uv run ruff check .
 
 # Fix linting issues
 lint-fix:
-	ruff check --fix .
+	uv run ruff check --fix .
 
 # Format code
 format:
-	ruff format .
+	uv run ruff format .
 
 # Check formatting without making changes
 format-check:
-	ruff format --check .
+	uv run ruff format --check .
 
 # Run type checker with ty
 typecheck:
-	uvx ty check
+	uv run ty check
 
 # Alias for typecheck
 ty: typecheck
 
 # Run mypy (alternative type checker)
 mypy:
-	mypy src/
+	uv run mypy src/
 
 # Clean generated files
 clean:
@@ -437,7 +435,7 @@ install:
 		echo "Installing uv..."; \
 		curl -LsSf https://astral.sh/uv/install.sh | sh; \
 	}
-	uv pip install -e ".[dev]"
+	uv sync
 ```
 
 **Multiple Commands:**
@@ -647,10 +645,10 @@ make test        # Run tests with coverage
 make all         # Run all checks
 
 # Or run commands directly
-ruff format .
-ruff check --fix .
-uvx ty check
-pytest --cov=src --cov-report=term-missing
+uv run ruff format .
+uv run ruff check --fix .
+uv run ty check
+uv run pytest --cov=src --cov-report=term-missing
 ```
 
 ### Step 4: Set Up Pre-commit Hooks
@@ -659,7 +657,7 @@ Create **.pre-commit-config.yaml:**
 ```yaml
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.9
+    rev: v0.12.0  # pin a current release
     hooks:
       - id: ruff
         args: [--fix]
@@ -669,13 +667,13 @@ repos:
     hooks:
       - id: ty
         name: ty
-        entry: uvx ty check
+        entry: uv run ty check
         language: system
         types: [python]
         pass_filenames: false
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -685,7 +683,7 @@ repos:
 
 Install the hooks:
 ```bash
-pre-commit install
+uv run pre-commit install
 ```
 
 Now quality checks run automatically on commit!
@@ -693,7 +691,6 @@ Now quality checks run automatically on commit!
 ### Step 5: Set Up GitHub Repository
 
 ```bash
-# Create initial commit
 git add .
 git commit -m "Initial project setup
 
@@ -703,14 +700,9 @@ git commit -m "Initial project setup
 - Set up ty for type checking
 - Add Makefile for task automation
 - Add pre-commit hooks
-
-🤖 Generated with Claude Code
 "
 
-# Create GitHub repository (using gh CLI)
 gh repo create myapp --public --source=. --remote=origin
-
-# Push code
 git push -u origin main
 ```
 
@@ -730,65 +722,40 @@ jobs:
   quality:
     name: Code Quality
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.11'
-
-      - name: Install uv
-        run: pip install uv
-
-      - name: Install dependencies
-        run: |
-          uv venv
-          uv pip install -e ".[dev]"
-
-      - name: Lint with Ruff
-        run: |
-          source .venv/bin/activate
-          ruff check .
-
-      - name: Check formatting
-        run: |
-          source .venv/bin/activate
-          ruff format --check .
-
-      - name: Type check with ty
-        run: uvx ty check
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run ty check
 
   test:
     name: Test Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.11', '3.12', '3.13']
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          pip install uv
-          uv pip install -e ".[dev]"
-
-      - name: Run tests
-        run: pytest --cov=src --cov-report=xml
+          enable-cache: true
+      - run: uv python install ${{ matrix.python-version }}
+      - run: uv sync
+      - run: uv run pytest --cov=src --cov-report=xml
 
       - name: Upload coverage
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
-        uses: codecov/codecov-action@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        uses: codecov/codecov-action@v5
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
 ```
 
 Commit and push:
@@ -930,21 +897,20 @@ gh pr create
 ### Adding a Dependency
 
 ```bash
-# Add to pyproject.toml dependencies
-# Then install
-uv pip install requests
-
-# Or install directly (uv will update pyproject.toml)
+# Add to pyproject.toml and lockfile
+# Prefer:
+# uv add requests
 uv add requests
 ```
 
 ### Updating Dependencies
 
 ```bash
-# Update all dependencies
-uv pip install --upgrade -e ".[dev]"
+# Refresh lockfile toward latest allowed versions
+uv lock --upgrade
+uv sync
 
-# Or use uv's update command
+# Or:
 uv pip list --outdated
 ```
 
@@ -990,11 +956,9 @@ git commit --no-verify
 
 ```bash
 # Run in clean environment
-deactivate
 rm -rf .venv
-uv venv
-uv pip install -e ".[dev]"
-pytest
+uv sync
+uv run pytest
 ```
 
 ### Merge Conflicts
@@ -1040,8 +1004,9 @@ git commit -m "Merge main and resolve conflicts"
 
 ```bash
 # Project setup
-uv venv
-uv pip install -e ".[dev]"
+uv init myapp && cd myapp
+uv add --dev ruff pytest pytest-cov ty pre-commit
+uv sync
 
 # Using Make (recommended)
 make install       # Install dependencies
@@ -1053,10 +1018,10 @@ make all           # Run all checks
 make clean         # Clean generated files
 
 # Quality checks (direct commands)
-ruff check --fix .
-ruff format .
-uvx ty check
-pytest --cov=src
+uv run ruff check --fix .
+uv run ruff format .
+uv run ty check
+uv run pytest --cov=src
 
 # Git workflow
 git checkout -b feature-name
@@ -1066,9 +1031,9 @@ git push -u origin feature-name
 gh pr create
 
 # Maintenance
-uv pip install --upgrade -e ".[dev]"
-pre-commit autoupdate
-pytest --cov=src --cov-report=html
+uv lock --upgrade && uv sync
+uv run pre-commit autoupdate
+uv run pytest --cov=src --cov-report=html
 ```
 
 ## Next Steps
