@@ -117,12 +117,12 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
 
       - name: Set up Python
-        run: uv python install 3.13
+        run: uv python install 3.14
 
       - name: Install dependencies
         run: uv sync
@@ -140,7 +140,7 @@ jobs:
         run: uv run pytest --cov=src --cov-report=xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage.xml
 ```
@@ -155,13 +155,13 @@ jobs:
 
 `actions/checkout@v7` is the current checkout action. Older `@v4` examples still float around the internet; they run on Node 20, and GitHub is retiring that runtime. Prefer v7.
 
-`astral-sh/setup-uv` **dropped moving major tags**. `@v5` or `@v10` will not quietly track new releases. Pin a full version such as `@v10.0.1`. Check [the setup-uv releases](https://github.com/astral-sh/setup-uv/releases) when you copy this file six months from now.
+`astral-sh/setup-uv` **dropped moving major tags**. `@v5` or `@v10` will not quietly track new releases. Pin a full version such as `@v10.3.3`. Check [the setup-uv releases](https://github.com/astral-sh/setup-uv/releases) when you copy this file six months from now.
 
 If you want to be extra careful about supply chain risk, pin third-party actions to a full commit SHA and leave the human-readable version in a comment:
 
 ```yaml
 # Resolve the SHA from the action's GitHub release; do not copy a hash from memory
-# - uses: astral-sh/setup-uv@<40-character-sha>  # v10.0.1
+# - uses: astral-sh/setup-uv@<40-character-sha>  # v10.3.3
 ```
 
 Readable tutorials use version tags. Production repos that handle secrets often pin SHAs and let Dependabot bump both the SHA and the comment.
@@ -172,7 +172,7 @@ Readable tutorials use version tags. Production repos that handle secrets often 
 
 ## Matrix Testing
 
-Test the versions you claim to support. Skip EOL releases; as of this writing that means treating 3.12–3.14 as the interesting matrix:
+Test the versions you claim to support. Skip EOL releases; as of this writing that means treating 3.13–3.15 as the interesting matrix:
 
 ```yaml
 name: CI
@@ -186,13 +186,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.12', '3.13', '3.14']
+        python-version: ['3.13', '3.14', '3.15']
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
 
@@ -206,7 +206,7 @@ jobs:
         run: uv run pytest
 ```
 
-`fail-fast: false` lets the 3.14 / Windows cell finish even if macOS 3.12 already failed. That extra signal is usually worth the minutes.
+`fail-fast: false` lets the 3.15 / Windows cell finish even if macOS 3.13 already failed. That extra signal is usually worth the minutes.
 
 ## Multiple Jobs
 
@@ -222,10 +222,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
-      - run: uv python install 3.13
+      - run: uv python install 3.14
       - run: uv sync
       - run: uv run ruff check .
       - run: uv run ruff format --check .
@@ -234,10 +234,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
-      - run: uv python install 3.13
+      - run: uv python install 3.14
       - run: uv sync
       - run: uv run ty check src/
 
@@ -245,10 +245,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
-      - run: uv python install 3.13
+      - run: uv python install 3.14
       - run: uv sync
       - run: uv run pytest --cov=src
 
@@ -263,7 +263,7 @@ The `all-checks-passed` job is a convenient single required status check: branch
 
 ## Real-World Example
 
-A package workflow: quality on 3.13, tests on a version × OS matrix, publish to PyPI with Trusted Publishing when a GitHub Release is published.
+A package workflow: quality on 3.14, tests on a version × OS matrix, publish to PyPI with Trusted Publishing when a GitHub Release is published.
 
 ```yaml
 name: CI/CD
@@ -277,7 +277,7 @@ on:
     types: [published]
 
 env:
-  PYTHON_VERSION: '3.13'
+  PYTHON_VERSION: '3.14'
 
 jobs:
   quality:
@@ -285,7 +285,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
       - run: uv python install ${{ env.PYTHON_VERSION }}
@@ -301,11 +301,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.12', '3.13', '3.14']
+        python-version: ['3.13', '3.14', '3.15']
 
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
       - run: uv python install ${{ matrix.python-version }}
@@ -313,8 +313,8 @@ jobs:
       - run: uv run pytest -v --cov=src --cov-report=xml --cov-report=term
 
       - name: Upload coverage
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
-        uses: codecov/codecov-action@v5
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage.xml
 
@@ -328,7 +328,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
       - run: uv python install ${{ env.PYTHON_VERSION }}
@@ -362,7 +362,7 @@ Point the CI badge at the workflow *file* (`ci.yml`). The older `/workflows/CI/b
 strategy:
   fail-fast: true  # cancel remaining matrix cells if one fails
   matrix:
-    python-version: ['3.12', '3.13', '3.14']
+    python-version: ['3.13', '3.14', '3.15']
 ```
 
 Use `true` when a single failure makes the rest of the matrix a waste of minutes. Use `false` (as in the full example above) when you want every Python version's opinion.
@@ -372,10 +372,10 @@ Use `true` when a single failure makes the rest of the matrix a waste of minutes
 ```yaml
 # Good enough for a tutorial and most repos — a released tag
 - uses: actions/checkout@v7
-- uses: astral-sh/setup-uv@v10.0.1
+- uses: astral-sh/setup-uv@v10.3.3
 
 # Extra careful — immutable commit SHA (resolve from the release)
-# - uses: astral-sh/setup-uv@<full-sha>  # v10.0.1
+# - uses: astral-sh/setup-uv@<full-sha>  # v10.3.3
 
 # Bad — a branch that moves under you
 - uses: actions/checkout@main
@@ -525,10 +525,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
-      - run: uv python install 3.13
+      - run: uv python install 3.14
       - run: uv sync
       - run: uv run ruff check .
       - run: uv run ruff format --check .
@@ -538,14 +538,14 @@ jobs:
 # Matrix testing
 strategy:
   matrix:
-    python-version: ['3.12', '3.13', '3.14']
+    python-version: ['3.13', '3.14', '3.15']
     os: [ubuntu-latest, macos-latest]
 
 # Conditional execution
 if: github.ref == 'refs/heads/main'
 
 env:
-  PYTHON_VERSION: '3.13'
+  PYTHON_VERSION: '3.14'
 
 # Secrets
 ${{ secrets.SECRET_NAME }}

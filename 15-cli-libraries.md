@@ -808,7 +808,7 @@ class ProjectType(str, Enum):
 TEMPLATES: dict[str, dict[str, str]] = {
     "python": {
         "README.md": "# {name}\n\nA Python project.\n",
-        "pyproject.toml": '[project]\nname = "{name}"\nversion = "0.1.0"\nrequires-python = ">=3.12"\n',
+        "pyproject.toml": '[project]\nname = "{name}"\nversion = "0.1.0"\nrequires-python = ">=3.13"\n',
         "src/__init__.py": "",
         "src/main.py": 'def main() -> None:\n    print("Hello from {name}!")\n',
         "tests/__init__.py": "",
@@ -816,7 +816,7 @@ TEMPLATES: dict[str, dict[str, str]] = {
     },
     "fastapi": {
         "README.md": "# {name}\n\nA FastAPI project.\n",
-        "pyproject.toml": '[project]\nname = "{name}"\nversion = "0.1.0"\nrequires-python = ">=3.12"\ndependencies = ["fastapi[standard]"]\n',
+        "pyproject.toml": '[project]\nname = "{name}"\nversion = "0.1.0"\nrequires-python = ">=3.13"\ndependencies = ["fastapi[standard]"]\n',
         "src/__init__.py": "",
         "src/main.py": 'from fastapi import FastAPI\n\napp = FastAPI()\n\n@app.get("/")\ndef root() -> dict:\n    return {{"message": "Hello from {name}"}}\n',
         "tests/__init__.py": "",
@@ -827,15 +827,13 @@ TEMPLATES: dict[str, dict[str, str]] = {
 NEXT_STEPS: dict[str, list[tuple[str, str]]] = {
     "python": [
         ("cd {name}", "Enter your project directory"),
-        ("uv venv && source .venv/bin/activate", "Create and activate virtual env"),
-        ("uv sync", "Install dependencies"),
-        ("python src/main.py", "Run the project"),
+        ("uv sync", "Create the virtual env and install dependencies"),
+        ("uv run python src/main.py", "Run the project"),
     ],
     "fastapi": [
         ("cd {name}", "Enter your project directory"),
-        ("uv venv && source .venv/bin/activate", "Create and activate virtual env"),
-        ("uv sync", "Install dependencies"),
-        ("fastapi dev src/main.py", "Start the development server"),
+        ("uv sync", "Create the virtual env and install dependencies"),
+        ("uv run fastapi dev src/main.py", "Start the development server"),
     ],
 }
 
@@ -970,10 +968,10 @@ The `[project.scripts]` table in `pyproject.toml` maps command names to Python e
 name = "my-cli-tool"
 version = "0.1.0"
 description = "A handy CLI tool"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
-    "typer>=0.12.0",
-    "rich>=13.7.0",
+    "typer>=0.29.0",
+    "rich>=15.0.0",
 ]
 
 [project.scripts]

@@ -30,10 +30,10 @@ Type checkers such as [mypy](https://github.com/python/mypy) and [Pyright](https
 
 [Ruff](https://github.com/astral-sh/ruff) is a Python linter *and* formatter, written in Rust. It is the modern default: fast, one binary, hundreds of rules ported from Flake8, isort, pyupgrade, flake8-bugbear, and friends.
 
-It is not new. The current release line is **0.16.x**. Pin that line so CI does not surprise you:
+It is not new. The current release line is **0.17.x**. Pin that line so CI does not surprise you:
 
 ```bash
-uv add --dev "ruff>=0.16.0"
+uv add --dev "ruff>=0.17.0"
 uv run ruff check .
 ```
 
@@ -76,17 +76,17 @@ uv run ruff check --watch .
 
 Put settings in `pyproject.toml`, `ruff.toml`, or `.ruff.toml`.
 
-Ruff 0.16 expanded the **default** rule set a lot. A new project can start from those defaults and add rules as you go. An explicit `select` is still a good teaching (and team) config: you can see exactly what is on, and it includes the full pycodestyle `E` set, import sorting, bugbear, comprehensions, and pyupgrade.
+Recent Ruff releases expanded the **default** rule set a lot. A new project can start from those defaults and add rules as you go. An explicit `select` is still a good teaching (and team) config: you can see exactly what is on, and it includes the full pycodestyle `E` set, import sorting, bugbear, comprehensions, and pyupgrade.
 
 ```toml
 [project]
 name = "my-sample-project"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 
 [tool.ruff]
 line-length = 88
-target-version = "py313"
+target-version = "py314"
 
 exclude = [
     ".git",
@@ -117,7 +117,7 @@ ignore = [
 "tests/**/*.py" = ["S101"]
 ```
 
-`target-version = "py313"` tells pyupgrade and friends which language features are fair game. Keep it in sync with the Python you actually run.
+`target-version = "py314"` tells pyupgrade and friends which language features are fair game. Keep it in sync with the Python you actually run.
 
 ### Rule categories
 
@@ -142,8 +142,8 @@ The catalog lives at [Ruff Rules](https://docs.astral.sh/ruff/rules/). Default-o
 ```bash
 mkdir my_sample_project
 cd my_sample_project
-uv init --python 3.13
-uv add --dev "ruff>=0.16.0"
+uv init --python 3.14
+uv add --dev "ruff>=0.17.0"
 ```
 
 **2. Add `sample.py` with a few deliberate problems:**
@@ -208,7 +208,7 @@ Unused imports disappear. `E721` stays: change `type(data) == list` to `isinstan
 uv run ruff format sample.py
 ```
 
-Without an explicit `select`, 0.16 defaults still catch the unused imports and import order. They do **not** include `E721`; that is one reason a written `select` list is easier to teach from.
+Without an explicit `select`, the defaults still catch the unused imports and import order. They do **not** include `E721`; that is one reason a written `select` list is easier to teach from.
 
 ### VS Code
 
@@ -242,7 +242,7 @@ uv add --dev pre-commit
 ```yaml
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.5
+    rev: v0.17.4
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
@@ -333,7 +333,7 @@ Use Ruff for formatting too. That is the next chapter.
 
 ```bash
 # Project install (preferred)
-uv add --dev "ruff>=0.16.0"
+uv add --dev "ruff>=0.17.0"
 uv run ruff check .
 uv run ruff check --fix .
 uv run ruff check --watch .
@@ -345,7 +345,7 @@ uvx ruff check .
 # pyproject.toml sketch
 # [tool.ruff]
 # line-length = 88
-# target-version = "py313"
+# target-version = "py314"
 # [tool.ruff.lint]
 # select = ["E", "W", "F", "I", "B", "C4", "UP"]
 ```

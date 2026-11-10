@@ -129,9 +129,11 @@ Modern Python development, in the order you actually need it:
 
 ## Getting Started
 
-Start with [Chapter 1: Introduction](./01-introduction.md). As of this writing, Python 3.14 is the current stable release; examples in the core chapters use 3.13 and declare `requires-python = ">=3.12"`. 3.12 is still fine. Do not freeze a new project on 3.11 because a blog post from 2024 told you it was current.
+Start with [Chapter 1: Introduction](./01-introduction.md). As of this writing, Python 3.15 is the current stable release, 3.14 is the previous one, and 3.13 is the practical floor. Examples in the core chapters use 3.14 — it has had a year of wheels, which is more useful than being newest — and declare `requires-python = ">=3.13"`. Do not freeze a new project on 3.11 because a blog post from 2024 told you it was current.
 
-**Last reviewed:** August 2026 (Python 3.14 current stable; 3.13 in examples; `requires-python >= 3.12`; uv project workflow).
+**On Python 3.15:** it shipped on October 9, 2026, and the 3.15 series is already at 3.15.2. It brings lazy imports, `frozendict` and `sentinel` built-ins, UTF-8 as the default text encoding, unpacking in comprehensions, and a stable ABI for free-threaded builds. Add 3.15 to your CI matrix now; switch your default interpreter once your dependencies and tests pass on it.
+
+**Last reviewed:** November 2026 (Python 3.15 current stable; 3.14 in examples; `requires-python >= 3.13`; uv project workflow).
 
 ## Contributing
 

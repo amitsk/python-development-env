@@ -16,7 +16,7 @@ Without an environment per project you eventually install a package “just for 
 - **Reproducibility** — `pyproject.toml` plus a lockfile (or, in older projects, `requirements.txt`) is how you hand someone else the same stack.
 - **A clean system Python** — OS tools that happen to be written in Python keep their own packages.
 - **Easy reset** — delete the environment directory and make a new one. You are not uninstalling packages one by one from `/usr`.
-- **Multiple Pythons** — 3.12 on this repo, 3.13 on that one, without a prayer circle around `$PATH`.
+- **Multiple Pythons** — 3.13 on this repo, 3.14 on that one, without a prayer circle around `$PATH`.
 
 Day to day you will not think about this much. `uv init`, `uv add`, `uv run`. The environment is a directory named `.venv`. The rest of this chapter is so you know what that directory *is*.
 
@@ -34,7 +34,7 @@ python3 -m venv venv
 python3 -m venv myenv
 
 # Prefer an explicit interpreter when you have more than one
-python3.13 -m venv venv
+python3.14 -m venv venv
 ```
 
 That directory contains a Python interpreter, a copy of pip, and an isolated `site-packages` for installs.
@@ -91,17 +91,17 @@ For new work, initialize a project. That gives you `pyproject.toml`, a virtualen
 
 ```bash
 # New directory plus scaffold
-uv init --python 3.13 myapp
+uv init --python 3.14 myapp
 cd myapp
 
 # Already in a directory? Initialize in place
-uv init --python 3.13
+uv init --python 3.14
 ```
 
-If 3.13 is not on the machine, install it first:
+If 3.14 is not on the machine, install it first:
 
 ```bash
-uv python install 3.13
+uv python install 3.14
 uv python list
 ```
 
@@ -128,7 +128,7 @@ uv venv
 uv venv myenv
 
 # Specific Python (uv can fetch it if needed)
-uv venv --python 3.13
+uv venv --python 3.14
 ```
 
 ### Activating the uv virtual environment
@@ -225,7 +225,7 @@ ENV/
 ```bash
 # Create
 python3 -m venv venv
-python3.13 -m venv venv
+python3.14 -m venv venv
 
 # Activate (macOS/Linux)
 source venv/bin/activate
@@ -244,17 +244,17 @@ deactivate
 
 ```bash
 # Python, if you need it
-uv python install 3.13
+uv python install 3.14
 
 # New project — this is the daily path
-uv init --python 3.13 myapp && cd myapp
+uv init --python 3.14 myapp && cd myapp
 uv add package_name
 uv add --dev ruff pytest
 uv sync
 uv run python main.py
 
 # Or only a venv
-uv venv --python 3.13
+uv venv --python 3.14
 source .venv/bin/activate   # optional on macOS/Linux
 .venv\Scripts\activate      # optional on Windows
 
@@ -271,7 +271,7 @@ deactivate
 
 ### Command Not Found
 
-If `uv` or `python3.13` is “not found” after a fresh install, your `PATH` is stale or incomplete. Close and reopen the terminal. Recheck the installer output for the directory it added. As a last resort, call the binary by full path.
+If `uv` or `python3.14` is “not found” after a fresh install, your `PATH` is stale or incomplete. Close and reopen the terminal. Recheck the installer output for the directory it added. As a last resort, call the binary by full path.
 
 ### Permission Errors
 
@@ -282,11 +282,11 @@ Do not use `sudo` to create a virtual environment. That is how you decorate a lo
 Name the interpreter:
 
 ```bash
-python3.13 -m venv venv
+python3.14 -m venv venv
 
 # Or with uv — install, then create
-uv python install 3.13
-uv venv --python 3.13
+uv python install 3.14
+uv venv --python 3.14
 ```
 
 `uv python list` shows what uv can see.

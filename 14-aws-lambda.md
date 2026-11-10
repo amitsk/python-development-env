@@ -28,9 +28,9 @@ Because Lambda is invoked by events rather than running as a long-lived process,
 
 ### Python runtimes (as of 2026)
 
-Lambda's current GA Python runtimes include **python3.12**, **python3.13**, and **python3.14**. The console default when you click "Create function" is **Python 3.14**. **python3.15** is in **public preview** — useful for trying the next runtime, not for production. Preview runtimes are not covered by the Lambda SLA.
+Lambda's current GA Python runtimes include **python3.12**, **python3.13**, and **python3.14**. The console default when you click "Create function" is **Python 3.14**. **python3.15** is in **public preview**, with general availability targeted for November 2026 — useful for trying the next runtime, not for production. Preview runtimes are not covered by the Lambda SLA.
 
-This chapter uses **python3.13** as the teaching default in SAM templates: it is GA, widely deployed, and a conservative choice while 3.14 is still the new kid. You can set `Runtime: python3.14` whenever you are ready; it is GA.
+This chapter uses **python3.14** as the teaching default in SAM templates. It is GA, widely deployed, and has had a full year of wheel support. Add **python3.15** to your test matrix now if you like, but keep production functions on **python3.14** until the runtime is GA and your dependencies ship compatible wheels.
 
 ---
 
@@ -453,7 +453,7 @@ Description: User service Lambda application
 
 Globals:
   Function:
-    Runtime: python3.13
+    Runtime: python3.14
     Architectures:
       - arm64
     Timeout: 30
@@ -540,7 +540,7 @@ Outputs:
 
 Key points about this template:
 
-- **`Runtime: python3.13`** is the conservative teaching default. **python3.14 is GA** and is the console default; switch when your dependencies and test matrix are ready. Do not use **python3.15** in production while it is still public preview.
+- **`Runtime: python3.14`** is the conservative teaching default. **python3.14 is GA** and is the console default. Keep production functions there until **python3.15** leaves public preview and your dependencies ship compatible wheels.
 - **`Globals`** sets default values for all functions. `arm64` (Graviton) is typically cheaper and often faster than `x86_64` for Python workloads.
 - **`DynamoDBCrudPolicy`** is a SAM policy template — a shorthand that expands to the appropriate IAM policy. It grants the minimum required permissions.
 - **`PAY_PER_REQUEST`** billing mode for DynamoDB means you pay per read/write operation rather than provisioning capacity. This matches Lambda's scaling model.
@@ -656,18 +656,18 @@ SAM supports `pyproject.toml` natively for dependency resolution. Define your ru
 [project]
 name = "my-lambda-app"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
-    "aws-lambda-powertools>=3.0.0",
-    "boto3>=1.34.0",
+    "aws-lambda-powertools>=3.39.0",
+    "boto3>=1.43.0",
 ]
 
 [dependency-groups]
 dev = [
-    "types-boto3[dynamodb,sqs]>=1.34.0",
-    "moto[dynamodb,sqs]>=5.0.0",
-    "pytest>=9.0.0",
-    "ruff>=0.16.0",
+    "types-boto3[dynamodb,sqs]>=1.43.0",
+    "moto[dynamodb,sqs]>=5.2.0",
+    "pytest>=9.2.0",
+    "ruff>=0.17.0",
 ]
 ```
 
@@ -683,12 +683,12 @@ uv pip install \
   --no-installer-metadata \
   --no-compile-bytecode \
   --python-platform aarch64-manylinux2014 \
-  --python 3.13 \
+  --python 3.14 \
   --target packages \
   -r requirements.txt
 ```
 
-Use `x86_64-manylinux2014` instead of `aarch64-manylinux2014` if your function is not on `arm64`. Then zip `packages/` plus your application code. The uv guide also covers multi-stage Docker images based on `public.ecr.aws/lambda/python:3.13` and Lambda layers. Prefer that guide over improvising a Dockerfile at deploy time.
+Use `x86_64-manylinux2014` instead of `aarch64-manylinux2014` if your function is not on `arm64`. Then zip `packages/` plus your application code. The uv guide also covers multi-stage Docker images based on `public.ecr.aws/lambda/python:3.14` and Lambda layers. Prefer that guide over improvising a Dockerfile at deploy time.
 
 ### Lambda Layers for Shared Dependencies
 
@@ -703,11 +703,11 @@ In `template.yaml`:
       LayerName: shared-dependencies
       ContentUri: dependencies/
       CompatibleRuntimes:
-        - python3.13
+        - python3.14
       CompatibleArchitectures:
         - arm64
     Metadata:
-      BuildMethod: python3.13
+      BuildMethod: python3.14
 
   CreateUserFunction:
     Type: AWS::Serverless::Function
@@ -1022,12 +1022,12 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
 
       - name: Set up Python
-        run: uv python install 3.13
+        run: uv python install 3.14
 
       - name: Install dependencies
         run: uv sync --all-extras
@@ -1045,7 +1045,7 @@ jobs:
         run: uv run pytest tests/unit/ --cov=src --cov-report=term-missing --cov-report=xml
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         if: always()
         with:
           files: ./coverage.xml
@@ -1060,12 +1060,12 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
+          python-version: "3.14"
 
       - name: Install SAM CLI
-        uses: aws-actions/setup-sam@v2
+        uses: aws-actions/setup-sam@v3
         with:
           use-installer: true
 
@@ -1073,7 +1073,7 @@ jobs:
         run: sam build --parallel
 
       - name: Upload SAM build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sam-build
           path: .aws-sam/build/
@@ -1090,18 +1090,18 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Install SAM CLI
-        uses: aws-actions/setup-sam@v2
+        uses: aws-actions/setup-sam@v3
         with:
           use-installer: true
 
       - name: Download SAM build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: sam-build
           path: .aws-sam/build/
 
       - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: us-east-1

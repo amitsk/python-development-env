@@ -38,7 +38,7 @@ data = response.json()
 
 Install names and versions on purpose, not by accident.
 
-- **Reproducibility** — if you developed against `requests` 2.32, the next machine should not silently get a different major version.
+- **Reproducibility** — if you developed against `requests` 2.34, the next machine should not silently get a different major version.
 - **Collaboration** — teammates (and CI) need a declared list, not a tour of your laptop.
 - **Deployment** — production installs from the same specification you tested.
 - **Isolation** — project A and project B can disagree about versions because they do not share an environment.
@@ -62,7 +62,7 @@ Look at a project page before you depend on it. Downloads, recent releases, a li
 pip install requests
 
 # Exact version
-pip install requests==2.32.0
+pip install requests==2.34.2
 
 # Latest allowed
 pip install --upgrade requests
@@ -81,9 +81,9 @@ The traditional declaration is a `requirements.txt`:
 **requirements.txt:**
 
 ```
-requests==2.32.0
-pandas==2.2.0
-numpy==2.0.0
+requests==2.34.2
+pandas==3.1.1
+numpy==2.5.4
 ```
 
 ```bash
@@ -122,7 +122,7 @@ uv add --dev pytest
 uv add --group lint ruff
 
 # Constraint at add time
-uv add "requests>=2.32.0"
+uv add "requests>=2.34.0"
 
 # Take it back out
 uv remove requests
@@ -170,17 +170,17 @@ The modern declaration is `pyproject.toml`.
 [project]
 name = "myapp"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
-    "requests>=2.32.0",
-    "pandas>=2.2.0",
-    "numpy>=2.0.0",
+    "requests>=2.34.0",
+    "pandas>=3.1.0",
+    "numpy>=2.5.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.0",
-    "ruff>=0.16.0",
+    "pytest>=9.2.0",
+    "ruff>=0.17.0",
     "ty",
 ]
 ```
@@ -208,7 +208,7 @@ uv also speaks pip, which is handy for a throwaway environment or a `requirement
 
 ```bash
 uv pip install requests
-uv pip install "requests>=2.32.0,<3.0.0"
+uv pip install "requests>=2.34.0,<3.0.0"
 uv pip install -r requirements.txt
 uv pip freeze > requirements.txt
 ```
@@ -228,16 +228,16 @@ A small scraper is enough to see the whole loop: init, add, sync, run.
 ### Step 1: Set Up Project
 
 ```bash
-uv python install 3.13   # if you do not already have it
-uv init --python 3.13 web-scraper
+uv python install 3.14   # if you do not already have it
+uv init --python 3.14 web-scraper
 cd web-scraper
 ```
 
 ### Step 2: Add Dependencies
 
 ```bash
-uv add "requests>=2.32.0" "beautifulsoup4>=4.12.0"
-uv add --dev "pytest>=9.0.0" "pytest-cov>=7.0.0"
+uv add "requests>=2.34.0" "beautifulsoup4>=4.15.0"
+uv add --dev "pytest>=9.2.0" "pytest-cov>=7.1.0"
 ```
 
 Or write `pyproject.toml` by hand (then `uv sync`):
@@ -247,16 +247,16 @@ Or write `pyproject.toml` by hand (then `uv sync`):
 name = "web-scraper"
 version = "0.1.0"
 description = "A simple web scraper"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
-    "requests>=2.32.0",
-    "beautifulsoup4>=4.12.0",
+    "requests>=2.34.0",
+    "beautifulsoup4>=4.15.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.0",
-    "pytest-cov>=7.0.0",
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
 ]
 ```
 
@@ -324,10 +324,10 @@ Constraints live in `pyproject.toml`. The lockfile then pins the exact build.
 ```toml
 [project]
 dependencies = [
-    "requests==2.32.0",        # Exact version
-    "pandas>=2.2.0",           # Minimum version
-    "numpy>=2.0.0,<3.0.0",     # Version range
-    "flask~=3.0.0",            # Compatible release (~= 3.0.0 means >=3.0.0, <3.1.0)
+    "requests==2.34.2",        # Exact version
+    "pandas>=3.1.0",           # Minimum version
+    "numpy>=2.5.0,<3.0.0",     # Version range
+    "flask~=3.1.0",            # Compatible release (~= 3.1.0 means >=3.1.0, <3.2.0)
 ]
 ```
 
@@ -339,19 +339,19 @@ Most Python packages use `MAJOR.MINOR.PATCH`:
 - **MINOR** — features, backward compatible in theory
 - **PATCH** — bug fixes
 
-`requests 2.32.0` is major 2, minor 32, patch 0. Treat a major bump as a deliberate upgrade, not a surprise from `uv lock --upgrade`.
+`requests 2.34.2` is major 2, minor 34, patch 2. Treat a major bump as a deliberate upgrade, not a surprise from `uv lock --upgrade`.
 
 ### Best Practices for Version Constraints
 
 ```toml
 # Good — upper bound on the next breaking major
-"requests>=2.32.0,<3.0.0"
+"requests>=2.34.0,<3.0.0"
 
 # Good — mature libraries where you trust the next minor
-"numpy>=2.0.0"
+"numpy>=2.5.0"
 
 # Use carefully — exact pin in pyproject.toml
-"pandas==2.2.0"
+"pandas==3.1.1"
 
 # Avoid — no lower bound, no upper bound, just a name
 "requests"
@@ -373,19 +373,19 @@ Split them.
 [project]
 name = "myapp"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     # Runtime only
-    "fastapi[standard]>=0.115.0",
-    "sqlalchemy>=2.0.0",
-    "pydantic>=2.8.0",
+    "fastapi[standard]>=0.162.0",
+    "sqlalchemy>=2.1.0",
+    "pydantic>=2.14.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.0",
-    "pytest-cov>=7.0.0",
-    "ruff>=0.16.0",
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.0",
     "ty",
 ]
 ```
@@ -454,8 +454,8 @@ The pip-shaped variants still work (`uv pip list --outdated`, `uv pip install --
 Sometimes two packages demand incompatible versions of a third:
 
 ```
-Package A requires: numpy>=1.26.0,<2.0.0
-Package B requires: numpy>=2.0.0
+Package A requires: numpy>=2.4.0,<2.5.0
+Package B requires: numpy>=2.5.0
 ```
 
 Options, in order of sanity:
@@ -511,15 +511,15 @@ git commit -m "Add requests and lock the tree"
 
 ```toml
 [dependency-groups]
-dev = ["pytest>=9.0.0", "ruff>=0.16.0", "ty"]
+dev = ["pytest>=9.2.0", "ruff>=0.17.0", "ty"]
 ```
 
 **Leave a breadcrumb in `pyproject.toml`** when the name is not self-explanatory:
 
 ```toml
 dependencies = [
-    "requests>=2.32.0",  # HTTP client for API calls
-    "pandas>=2.2.0",     # Data analysis and manipulation
+    "requests>=2.34.0",  # HTTP client for API calls
+    "pandas>=3.1.0",     # Data analysis and manipulation
 ]
 ```
 
@@ -533,9 +533,9 @@ dependencies = [
 
 ```toml
 dependencies = [
-    "fastapi[standard]>=0.115.0",  # API framework plus the usual server extras
-    "sqlalchemy>=2.0.0",           # Database ORM
-    "pydantic>=2.8.0",             # Data validation (also pulled in by FastAPI)
+    "fastapi[standard]>=0.162.0",  # API framework plus the usual server extras
+    "sqlalchemy>=2.1.0",           # Database ORM
+    "pydantic>=2.14.0",            # Data validation (also pulled in by FastAPI)
 ]
 ```
 
@@ -543,10 +543,10 @@ dependencies = [
 
 ```toml
 dependencies = [
-    "pandas>=2.2.0",         # Data manipulation
-    "numpy>=2.0.0",          # Numerical computing
-    "matplotlib>=3.9.0",     # Visualization
-    "scikit-learn>=1.5.0",   # Machine learning
+    "pandas>=3.1.0",         # Data manipulation
+    "numpy>=2.5.0",          # Numerical computing
+    "matplotlib>=3.11.0",    # Visualization
+    "scikit-learn>=1.9.0",   # Machine learning
 ]
 ```
 
@@ -554,8 +554,8 @@ dependencies = [
 
 ```toml
 dependencies = [
-    "typer>=0.12.0",         # CLI from type hints
-    "rich>=13.7.0",          # Terminal output
+    "typer>=0.29.0",         # CLI from type hints
+    "rich>=15.0.0",          # Terminal output
 ]
 ```
 
@@ -566,7 +566,7 @@ Existing project, classic `requirements.txt`:
 **Step 1: Create pyproject.toml** if you do not have one:
 
 ```bash
-uv init --python 3.13
+uv init --python 3.14
 ```
 
 Or the minimal file:
@@ -576,7 +576,7 @@ cat > pyproject.toml << 'EOF'
 [project]
 name = "myproject"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = []
 EOF
 ```
@@ -611,7 +611,7 @@ pip install -r requirements.txt
 pip freeze > requirements.txt
 
 # uv project workflow (preferred)
-uv init --python 3.13 myapp
+uv init --python 3.14 myapp
 uv add requests
 uv add --dev pytest ruff
 uv remove requests
@@ -629,18 +629,18 @@ uv export --format requirements.txt -o requirements.txt
 
 # pyproject.toml structure
 [project]
-requires-python = ">=3.12"
-dependencies = ["requests>=2.32.0"]
+requires-python = ">=3.13"
+dependencies = ["requests>=2.34.0"]
 
 [dependency-groups]
-dev = ["pytest>=9.0.0", "ruff>=0.16.0"]
+dev = ["pytest>=9.2.0", "ruff>=0.17.0"]
 ```
 
 ## Troubleshooting
 
 ### Package Not Found
 
-Confirm the name on [PyPI](https://pypi.org). A failed resolve is often a typo, a yanked version, or `requires-python` that excludes the interpreter in `.venv`. `uv python install 3.13` and `uv venv --python 3.13` if the environment is on an older interpreter than the package supports.
+Confirm the name on [PyPI](https://pypi.org). A failed resolve is often a typo, a yanked version, or `requires-python` that excludes the interpreter in `.venv`. `uv python install 3.14` and `uv venv --python 3.14` if the environment is on an older interpreter than the package supports.
 
 ### Version Conflicts
 

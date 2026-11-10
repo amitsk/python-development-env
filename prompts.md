@@ -48,7 +48,7 @@ the details in this file. The audience for the tutorial are students or folks le
     **** Picologging - https://github.com/microsoft/picologging - C reimplementation of the stdlib logging API (still beta)
         ***** Installation: uv add picologging
         ***** Same API as stdlib logging: import picologging as logging
-        ***** Still beta. There is an open issue about Python 3.13/3.14 support — do not sell it as a risk-free drop-in on those versions
+        ***** Still beta. The latest release (0.9.3) ships wheels only through CPython 3.12 — do not sell it as a risk-free drop-in on 3.13 or newer
         ***** When to use: already using stdlib logging, on a supported Python, and logging is on a hot path
     **** Comparison table: stdlib vs loguru vs picologging
     **** Recommendations: Loguru for new projects; stdlib if you want zero deps; picologging only in the narrow case above
@@ -57,10 +57,10 @@ the details in this file. The audience for the tutorial are students or folks le
 *** CI/CD
     **** Explain what is CI/CD. Benefits of CI/CD.
     **** Very short explainer about github actions. Point to github actions github link https://github.com/features/actions
-    **** Workflow examples with uv: actions/checkout@v7 (v4 is outdated; Node 20 runners going away), astral-sh/setup-uv@v10.0.1 (setup-uv dropped moving major tags; pin a full version), enable-cache: true
-    **** Python matrix: ['3.12', '3.13', '3.14']. Default PYTHON_VERSION: '3.13'
+    **** Workflow examples with uv: actions/checkout@v7 (v4 is outdated; Node 20 runners going away), astral-sh/setup-uv@v10.3.3 (setup-uv dropped moving major tags; pin a full version), enable-cache: true
+    **** Python matrix: ['3.13', '3.14', '3.15']. Default PYTHON_VERSION: '3.14'
     **** Steps: uv python install, uv sync, ruff check, ruff format --check, ty check, pytest --cov
-    **** Coverage: codecov/codecov-action@v5
+    **** Coverage: codecov/codecov-action@v7
     **** Publish: Trusted Publishing with pypa/gh-action-pypi-publish@release/v1
     **** Pinning third-party actions to commit SHAs is the extra-careful option; examples may use the version tags above so the tutorial stays readable
     **** act for local testing, secrets, required status checks, badges

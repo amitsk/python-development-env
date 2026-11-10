@@ -291,7 +291,7 @@ After this, `logging.getLogger(...)` calls flow through your Loguru sinks. One f
 
 [Picologging](https://github.com/microsoft/picologging) is a Microsoft-built, C-accelerated reimplementation of the stdlib `logging` API. Change the import, keep the rest of the code. Benchmarks on the project README put it roughly 4–17× faster than stdlib logging, depending on the call.
 
-It is still **beta**. The README says so plainly. Features are incomplete (see the project's [limitations](https://microsoft.github.io/picologging/limitations.html)), and there is an [open issue](https://github.com/microsoft/picologging/issues/229) about Python 3.13 and 3.14 support. Treat it as a performance experiment on a version it actually ships wheels for — not as a risk-free drop-in on 3.13/3.14.
+It is still **beta**. The README says so plainly. Features are incomplete (see the project's [limitations](https://microsoft.github.io/picologging/limitations.html)), and the latest release (0.9.3) publishes wheels only through CPython 3.12 — there is no 3.13, 3.14, or 3.15 wheel. Treat it as a performance experiment on 3.12 and older, not as a risk-free drop-in on a modern interpreter.
 
 ```bash
 uv add picologging
@@ -351,7 +351,7 @@ logger.info("Request processed")
 Use it only when all of these are true:
 
 - The codebase already uses stdlib `logging` and you do not want to migrate to Loguru
-- You are on a Python version picologging actually supports (check wheels and that open 3.13/3.14 issue before you commit)
+- You are on CPython 3.12 or older — the latest release (0.9.3) ships wheels no further than `cp312`
 - Logging is on a hot path — a high-throughput service where the stdlib's overhead shows up in profiles
 
 If any of those is a no, pick Loguru or stay on the stdlib. Speed that you cannot install is not speed.
@@ -368,14 +368,14 @@ If any of those is a no, pick Loguru or stay on the stdlib. Speed that you canno
 | **Tracebacks** | Basic | Rich + `@logger.catch` | Basic |
 | **Performance** | Baseline | Roughly stdlib | Several times faster, when it runs |
 | **Dependencies** | None | 1 package | 1 package (C extension) |
-| **Maturity** | Standard library | Stable | Beta; 3.13/3.14 support is unresolved |
+| **Maturity** | Standard library | Stable | Beta; wheels only through CPython 3.12 |
 | **Best for** | Zero deps, max compatibility | New projects | Hot-path stdlib code on a supported Python |
 
 ### Recommendations
 
 - **New project:** Use **Loguru**. You will write less logging code and get rotation, color, and JSON without a side quest.
 - **Zero extra dependencies:** Use the **stdlib `logging` module**. It is not fashionable. It will still be there in ten years.
-- **Existing stdlib `logging`, hot path, supported Python:** Evaluate **Picologging**. Confirm it installs and behaves on *your* interpreter. Do not assume 3.13/3.14 are fine.
+- **Existing stdlib `logging`, hot path, supported Python:** Evaluate **Picologging**. Confirm it installs and behaves on *your* interpreter. As of this writing, that means CPython 3.12 or older; do not assume a newer interpreter is fine.
 - **FastAPI / anything behind a log aggregator:** Emit **structured JSON** (Loguru `serialize=True`, or stdlib plus a JSON formatter) so fields can be indexed instead of grepped.
 
 ## Logging in FastAPI

@@ -36,7 +36,7 @@ Tests still matter. Types will not catch `return a - b` in a function named `add
 
 ## Type Hints, the Normal Syntax
 
-Python 3.9+ built-ins are generic. Python 3.10+ unions use `|`. This tutorial targets 3.13, so this is the syntax. You do not need `from typing import List, Dict, Optional` for ordinary collections.
+Python 3.9+ built-ins are generic. Python 3.10+ unions use `|`. This tutorial targets 3.14, so this is the syntax. You do not need `from typing import List, Dict, Optional` for ordinary collections.
 
 ### Scalars and functions
 
@@ -153,7 +153,7 @@ Prefer `type UserId = int` in new 3.12+ code.
 
 | Tool | Who | Language | Role here |
 |------|-----|----------|-----------|
-| **[ty](https://github.com/astral-sh/ty)** | Astral | Rust | Tutorial default. Fast. **Beta** (0.0.75). |
+| **[ty](https://github.com/astral-sh/ty)** | Astral | Rust | Tutorial default. Fast. **Beta** (0.0.100). |
 | **[mypy](https://github.com/python/mypy)** | python/mypy | Python | Mature CLI checker. Safe default if you want stable diagnostics. |
 | **[Pyright](https://github.com/microsoft/pyright)** / Pylance | Microsoft | TypeScript | Editor type checking in VS Code. |
 | **[Pyrefly](https://pyrefly.org/)** | Meta | Rust | Fast alternative, strong on large repos. |
@@ -164,7 +164,7 @@ Pyright still powers Pylance. You can run ty in CI and keep Pylance in the edito
 
 ## ty (tutorial default)
 
-[ty](https://docs.astral.sh/ty/) is Astral's type checker: same shop as uv and Ruff, written in Rust, built-in language server. It is **beta** as of 0.0.75. Fast, good on partially typed code, not a frozen specification yet.
+[ty](https://docs.astral.sh/ty/) is Astral's type checker: same shop as uv and Ruff, written in Rust, built-in language server. It is **beta** as of 0.0.100. Fast, good on partially typed code, not a frozen specification yet.
 
 Say that out loud to your team before you make it a merge gate. Then pin it.
 
@@ -188,10 +188,10 @@ Pin in `pyproject.toml` (or your lockfile) so CI and laptops match. When you upg
 
 ```toml
 [project]
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 
 [tool.ty.environment]
-python-version = "3.13"
+python-version = "3.14"
 
 [tool.ty.src]
 include = ["src", "tests"]
@@ -278,7 +278,7 @@ uv run mypy --show-error-codes src/
 
 ```toml
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -327,7 +327,7 @@ With **no config**, Pyrefly uses a conservative `basic` preset: high-confidence 
 
 ```toml
 [tool.pyrefly]
-python-version = "3.13"
+python-version = "3.14"
 ```
 
 After init, the same `calculator.py` looks like this:
@@ -407,12 +407,12 @@ uvx pyrefly init
 uvx pyrefly check
 
 # [tool.ty.environment]
-# python-version = "3.13"
+# python-version = "3.14"
 # [tool.ty.src]
 # include = ["src", "tests"]
 
 # [tool.mypy]
-# python_version = "3.13"
+# python_version = "3.14"
 # strict = true
 
 # Everyday hints

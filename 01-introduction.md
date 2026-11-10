@@ -15,7 +15,21 @@ This guide is about a professional Python *development environment*. Before we i
 
 **This is a guide about professional development practices.** The tools and workflows that keep code maintainable, make collaboration possible, and stop “it works on my machine” from becoming a personality trait.
 
-As of August 2026, Python **3.14** is the current stable release, **3.13** is the previous one, and **3.12** is still a reasonable floor. Examples in this guide prefer 3.13 and declare `requires-python = ">=3.12"`. Testing a matrix of versions belongs later; here, just do not start a new project on 3.11 because an old screenshot said it was current.
+As of November 2026, Python **3.15** is the current stable release, **3.14** is the previous one, and **3.13** is a reasonable floor. Python 3.12 and 3.13 are security-only; 3.10 reached end of life on October 1, 2026. Examples in this guide prefer **3.14** — it has had a full year of wheel support, which matters more day to day than being the newest release — and declare `requires-python = ">=3.13"`. Testing a matrix of versions belongs later; here, just do not start a new project on 3.11 because an old screenshot said it was current.
+
+### A note on Python 3.15
+
+3.15.0 shipped on October 9, 2026, and the series is already at 3.15.2. If you are starting a project today, 3.15 is a reasonable target, with a caveat: some C-extension wheels lag a new CPython release by weeks or months.
+
+The relevant changes for a development environment:
+
+- **Lazy imports** (PEP 810) defer module execution until first use, which can cut CLI start-up time without code changes.
+- **`frozendict` and `sentinel`** are built-ins now, so you need fewer third-party workarounds for immutable mappings and unique markers.
+- **UTF-8 is the default text encoding** for files, `open()`, and the filesystem, which removes a class of `UnicodeDecodeError` surprises on Windows.
+- **Unpacking in comprehensions** removes an awkward `for` loop or `zip` in code that unpacks pairs.
+- **Free-threaded builds have a stable ABI**, so extension authors can ship one wheel for the no-GIL interpreter.
+
+The practical advice is boring and correct: add `3.15` to your CI matrix now, keep 3.14 as the default until your dependency tree installs cleanly and your tests pass, then move the default. A version story that says “3.15 is current so everything must be 3.15” is how you get a broken deploy and a long afternoon.
 
 ## Software Engineering Best Practices
 

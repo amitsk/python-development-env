@@ -46,10 +46,10 @@ This chapter is the base of the pyramid. Integration and E2E tests matter; they 
 
 [pytest](https://github.com/pytest-dev/pytest) is the Python test runner you actually want. Tests are functions named `test_*`, assertions are plain `assert`, and failure output tells you the values.
 
-The 9.x line is current (9.1.1 at the time of writing). Pin the major:
+The 9.x line is current (9.2.0 at the time of writing). Pin the major:
 
 ```bash
-uv add --dev "pytest>=9.0.0" pytest-cov
+uv add --dev "pytest>=9.2.0" pytest-cov
 uv run pytest --version
 ```
 
@@ -162,7 +162,7 @@ Keep tests out of the package you ship. `src/` plus `tests/` is the usual split.
 [project]
 name = "myproject"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 
 [tool.pytest.ini_options]
 minversion = "9.0"
@@ -451,7 +451,7 @@ uv run pytest test_user.py -v
 Coverage answers "did any test execute this line?" It does not answer "did any test check this line." 100% coverage with no assertions is a very expensive green bar.
 
 ```bash
-uv add --dev "pytest>=9.0.0" pytest-cov
+uv add --dev "pytest>=9.2.0" pytest-cov
 
 uv run pytest --cov=mypackage
 uv run pytest --cov=mypackage --cov-report=term-missing
@@ -460,7 +460,7 @@ uv run pytest --cov=mypackage --cov-fail-under=80
 ```
 
 ```
----------- coverage: platform linux, python 3.13 -----------
+---------- coverage: platform linux, python 3.14 -----------
 Name                  Stmts   Miss  Cover   Missing
 ---------------------------------------------------
 mypackage/__init__.py     2      0   100%
@@ -531,7 +531,7 @@ Do not assert on `_private` attributes. Call the public API; if you cannot, the 
 ## Quick Reference
 
 ```bash
-uv add --dev "pytest>=9.0.0" pytest-cov
+uv add --dev "pytest>=9.2.0" pytest-cov
 
 uv run pytest
 uv run pytest tests/test_file.py

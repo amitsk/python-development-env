@@ -18,7 +18,7 @@ You've learned the core tools for professional Python development:
 
 This chapter is a **capstone for the core track** (quality tooling + project layout + CI). Use Chapters 12–15 when you need APIs, data, serverless, or CLI libraries. The goal here is a project you could hand to a teammate without also handing them a 20-minute verbal footnote.
 
-Examples in this chapter use **Python 3.13**. The floor is `requires-python = ">=3.12"` so 3.12 still works; 3.11 is no longer the default, and it should not sneak back in via a YAML matrix from 2024.
+Examples in this chapter use **Python 3.14**. The floor is `requires-python = ">=3.13"` so 3.13 still works; 3.12 is security-only now, and 3.11 should not sneak back in via a YAML matrix from 2024.
 
 ## Creating a New Project with uv
 
@@ -119,7 +119,7 @@ touch src/myapp/main.py tests/test_main.py README.md
 
 ### 5. Golden pyproject.toml
 
-This is the configuration this guide treats as the default. Pins are floors, not fashion statements: pytest 9, Ruff 0.16, Python 3.12+, type-checked and formatted as 3.13.
+This is the configuration this guide treats as the default. Pins are floors, not fashion statements: pytest 9, Ruff 0.17, Python 3.13+, type-checked and formatted as 3.14.
 
 ```bash
 cat > pyproject.toml << 'EOF'
@@ -131,16 +131,16 @@ authors = [
     {name = "Your Name", email = "your.email@example.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = []
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.0",
-    "pytest-cov>=7.0.0",
-    "ruff>=0.16.0",
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.0",
     "ty",
-    "pre-commit>=4.0.0",
+    "pre-commit>=4.7.0",
 ]
 
 [build-system]
@@ -152,7 +152,7 @@ packages = ["src/myapp"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py313"
+target-version = "py314"
 exclude = [
     ".git",
     ".venv",
@@ -187,7 +187,7 @@ addopts = [
 ]
 
 [tool.ty.environment]
-python-version = "3.13"
+python-version = "3.14"
 
 [tool.ty.src]
 include = ["src", "tests"]
@@ -207,7 +207,7 @@ exclude_lines = [
 EOF
 ```
 
-`requires-python = ">=3.12"` is the install floor. `target-version = "py313"` and `python-version = "3.13"` tell Ruff and ty to assume 3.13 syntax and stdlib. That split is intentional: you can still run on 3.12, while new examples are written as 3.13.
+`requires-python = ">=3.13"` is the install floor. `target-version = "py314"` and `python-version = "3.14"` tell Ruff and ty to assume 3.14 syntax and stdlib. That split is intentional: you can still run on 3.13, while new examples are written as 3.14.
 
 ### 6. Install development dependencies
 
@@ -479,10 +479,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
-      - run: uv python install 3.13
+      - run: uv python install 3.14
       - name: Install dependencies
         run: make install
       - name: Run checks
@@ -678,7 +678,7 @@ Create **.pre-commit-config.yaml:**
 ```yaml
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.5  # pin a current release
+    rev: v0.17.4  # pin a current release
     hooks:
       - id: ruff
         args: [--fix]
@@ -694,7 +694,7 @@ repos:
         pass_filenames: false
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -745,10 +745,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
-      - run: uv python install 3.13
+      - run: uv python install 3.14
       - run: uv sync
       - run: uv run ruff check .
       - run: uv run ruff format --check .
@@ -761,11 +761,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.12', '3.13', '3.14']
+        python-version: ['3.13', '3.14', '3.15']
 
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
       - run: uv python install ${{ matrix.python-version }}
@@ -773,13 +773,13 @@ jobs:
       - run: uv run pytest --cov=src --cov-report=xml
 
       - name: Upload coverage
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
-        uses: codecov/codecov-action@v5
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage.xml
 ```
 
-The quality job runs on **3.13**, the default in this guide. The test matrix covers **3.12, 3.13, and 3.14** because `requires-python` starts at 3.12 and 3.14 is GA. Coverage uploads from the default version so you are not paying Codecov to store three copies of the same good news.
+The quality job runs on **3.14**, the default in this guide. The test matrix covers **3.13, 3.14, and 3.15** because `requires-python` starts at 3.13 and 3.15 is the current stable release. Coverage uploads from the default version so you are not paying Codecov to store three copies of the same good news.
 
 Commit and push:
 ```bash
@@ -994,7 +994,7 @@ uv sync
 uv run pytest
 ```
 
-If that still passes, check Python versions. Local 3.13 vs CI 3.12 is a classic. The matrix exists so you find this before users do.
+If that still passes, check Python versions. Local 3.14 vs CI 3.13 is a classic. The matrix exists so you find this before users do.
 
 ### Merge Conflicts
 
@@ -1023,7 +1023,7 @@ git commit -m "Merge main and resolve conflicts"
 - Review code before merging
 - Keep dependencies updated
 - Document complex code
-- Pin CI actions and Python versions on purpose (`checkout@v7`, `setup-uv@v10.0.1`, default 3.13)
+- Pin CI actions and Python versions on purpose (`checkout@v7`, `setup-uv@v10.3.3`, default 3.14)
 
 ### Don't
 
@@ -1035,14 +1035,14 @@ git commit -m "Merge main and resolve conflicts"
 - Leave commented-out code
 - Merge broken CI
 - Use `--no-verify` habitually
-- Let 3.11 linger as "the default" in a workflow you copied from an old gist
+- Let 3.12 linger as "the default" in a workflow you copied from an old gist
 
 ## Quick Reference Commands
 
 ```bash
 # Project setup
 uv init --package myapp && cd myapp
-uv add --dev "ruff>=0.16.0" "pytest>=9.0.0" pytest-cov ty pre-commit
+uv add --dev "ruff>=0.17.0" "pytest>=9.2.0" pytest-cov ty pre-commit
 uv sync
 
 # Using Make (recommended)

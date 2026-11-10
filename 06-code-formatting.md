@@ -57,7 +57,7 @@ Ruff's formatter is the same `ruff` binary you installed for linting. It is matu
 If you followed Chapter 5, you already have it:
 
 ```bash
-uv add --dev "ruff>=0.16.0"
+uv add --dev "ruff>=0.17.0"
 uv run ruff --version
 ```
 
@@ -90,11 +90,11 @@ uv run ruff format --diff .
 
 ```toml
 [project]
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 
 [tool.ruff]
 line-length = 88
-target-version = "py313"
+target-version = "py314"
 
 [tool.ruff.format]
 quote-style = "double"
@@ -202,7 +202,7 @@ A config that covers both:
 ```toml
 [tool.ruff]
 line-length = 88
-target-version = "py313"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "C4", "UP"]
@@ -249,7 +249,7 @@ uv add --dev pre-commit
 ```yaml
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.5
+    rev: v0.17.4
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
@@ -269,7 +269,7 @@ uv run pre-commit install
 | Speed | Much faster | Baseline |
 | Black-compatible style | Yes | N/A |
 | Linting in the same tool | Yes | No |
-| Maturity | Production default (0.16.x) | Long-standing (2018) |
+| Maturity | Production default (0.17.x) | Long-standing (2018) |
 | Knobs | A few (quotes, indent, line length) | Almost none |
 | Adoption | Default on new projects | Still everywhere |
 
@@ -389,7 +389,7 @@ Do not mix a reformat with a feature. Reviewers deserve that much.
 ## Quick Reference
 
 ```bash
-uv add --dev "ruff>=0.16.0"
+uv add --dev "ruff>=0.17.0"
 
 uv run ruff format .                 # write
 uv run ruff format file.py
@@ -402,7 +402,7 @@ uvx ruff format .
 
 # [tool.ruff]
 # line-length = 88
-# target-version = "py313"
+# target-version = "py314"
 # [tool.ruff.format]
 # quote-style = "double"
 # indent-style = "space"
