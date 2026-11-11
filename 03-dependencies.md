@@ -2,25 +2,33 @@
 
 [← Previous: Virtual Environments](./02-virtual-environments.md) | [Back to README](./README.md) | [Next: Version Control →](./04-version-control.md)
 
-## What are Dependencies?
+## What Are Dependencies?
 
-Dependencies are packages your project does not contain but cannot run without. Other people wrote them, tested them, and published them. You install them instead of reinventing HTTP, date parsing, or a web framework on a Tuesday.
+Dependencies are packages your project needs to run that you didn't write yourself. Somebody else spent years writing them, testing edge cases, and publishing them so you don't have to reinvent an HTTP client, a matrix solver, or a robot kinematics engine on a Tuesday night.
 
-Need HTTP? `requests` or `httpx`. Dates? `python-dateutil`. A web API? `fastapi` (or Flask, Django, Litestar). Data frames? `pandas` and `numpy`. Those names are dependencies.
+- Need to talk to an API? **`requests`** or **`httpx`**
+- Crunching sensor arrays or matrices? **`numpy`** and **`scipy`**
+- Simulating a robot arm or quadruped? **`mujoco`**
+- Building a web backend? **`fastapi`** (or Flask, Django, Litestar)
+- Analyzing data tables? **`pandas`** or **`polars`**
 
-## Understanding Dependencies with a Simple Example
+All of those are dependencies.
 
-Fetching JSON from an API with only the standard library works. It is also more code than you want in a tutorial — or in production, once timeouts, encodings, and error bodies show up.
+---
 
-**Without a third-party HTTP library:**
+## Why Use a Dependency? (A 10-Second Example)
+
+You *can* fetch JSON from a web API using only Python's built-in `urllib.request`. It works, right up until you have to deal with query params, connection pooling, custom headers, and error decoding by hand:
+
+**With the standard library alone:**
 
 ```python
-import urllib.request
 import json
+import urllib.request
 
-# Works. You will grow to resent it.
-response = urllib.request.urlopen('https://api.example.com/data')
-data = json.loads(response.read().decode('utf-8'))
+# Works, but you will quickly grow to resent writing this 50 times.
+response = urllib.request.urlopen("https://api.example.com/telemetry")
+data = json.loads(response.read().decode("utf-8"))
 ```
 
 **With `requests`:**
@@ -28,43 +36,57 @@ data = json.loads(response.read().decode('utf-8'))
 ```python
 import requests
 
-response = requests.get('https://api.example.com/data', timeout=10)
+response = requests.get("https://api.example.com/telemetry", timeout=10)
 data = response.json()
 ```
 
-`requests` is a dependency: code you did not write, doing the uninteresting part well.
+`requests` is a dependency: battle-tested code doing the unglamorous plumbing so you can focus on your actual project.
 
-## Why Manage Dependencies?
+---
 
-Install names and versions on purpose, not by accident.
+## Why Manage Dependencies Carefully?
 
-- **Reproducibility** — if you developed against `requests` 2.34, the next machine should not silently get a different major version.
-- **Collaboration** — teammates (and CI) need a declared list, not a tour of your laptop.
-- **Deployment** — production installs from the same specification you tested.
-- **Isolation** — project A and project B can disagree about versions because they do not share an environment.
+When you just type `pip install whatever` into the void without recording versions, four things eventually happen:
 
-The mechanism is a project metadata file plus a lockfile. pip and `requirements.txt` are the background. uv and `pyproject.toml` are the workflow.
+1. **"It worked in October!"** — Six months later, a library releases version `3.0.0` with breaking API changes, and a fresh install crashes.
+2. **Transitive Drift** — You only installed 3 packages, but those 3 packages secretly pulled in 35 sub-packages (*transitive dependencies*). Without a **lockfile**, your teammate's laptop gets slightly different sub-package versions than yours.
+3. **Production Bloat** — Your test runner (`pytest`) and linter (`ruff`) end up baked into the Docker image running on your cloud server or Raspberry Pi rover.
+4. **Dependency Hell** — Package A demands `numpy<2.5`, Package B demands `numpy>=2.5`, and you find out at runtime instead of install time.
+
+Here is how modern Python solves this using **two files** that work as a team (`pyproject.toml` + `uv.lock`):
+
+```mermaid
+flowchart LR
+    PyProject["📄 pyproject.toml\nWhat you ASK for\n(e.g., requests >= 2.34.0)"] --> Resolver["⚡ uv Resolver\nFinds compatible versions\nof every sub-package"]
+    Resolver --> Lock["🔒 uv.lock\nExact pinned versions + hashes\n(Committed to Git!)"]
+    Lock --> Sync["📦 uv sync\nBuilds identical .venv on\nyour laptop, teammate's PC & CI"]
+```
+
+---
 
 ## The Python Package Index (PyPI)
 
-[PyPI](https://pypi.org) is the public repository of Python packages. When you `uv add requests`, you are asking an index (usually PyPI) for a wheel or an sdist, then recording that choice.
+**[PyPI](https://pypi.org)** (the Cheese Shop, if you're a Monty Python fan) is the official public warehouse of Python packages. When you run `uv add requests`, `uv` queries PyPI, downloads a pre-compiled **wheel** (`.whl`) that matches your OS and CPU architecture (e.g., Apple Silicon `arm64`, Linux `x86_64`, or Raspberry Pi `aarch64`), and records the exact hash in `uv.lock`.
 
-Look at a project page before you depend on it. Downloads, recent releases, a license you can live with, and a repository that is not a ghost town are all cheaper than debugging a package that peaked in 2018.
+> [!TIP]
+> **Look before you `uv add`:** Before adding an unfamiliar library from a random blog post, check its page on [pypi.org](https://pypi.org). Does it have recent releases? A real GitHub repo? A license you can use? Five seconds of checking beats building your capstone project on a library that was abandoned in 2018.
 
-## Introduction to pip
+---
 
-`pip` is the standard installer. It ships with Python. You will see it in every older tutorial, every Dockerfile from 2021, and every “just run this” snippet. You should recognize it. You should not make it your project manager.
+## Background: `pip` and `requirements.txt`
 
-### Basic pip Usage
+`pip` is Python's classic package installer. You will see it in older tutorials, legacy Dockerfiles, and Stack Overflow answers from 2021. You should know how to read it, even though `uv` is what you'll use day to day.
+
+### Basic `pip` Commands (Always Inside a Virtual Environment!)
 
 ```bash
 # Install a package
 pip install requests
 
-# Exact version
+# Install an exact version
 pip install requests==2.34.2
 
-# Latest allowed
+# Upgrade to the latest allowed version
 pip install --upgrade requests
 
 pip uninstall requests
@@ -72,99 +94,104 @@ pip list
 pip show requests
 ```
 
-Run these *inside* a virtual environment. Global `pip install` is how system Python becomes a junk drawer.
+### Classic `requirements.txt`
 
-### Requirements Files
+Historically, Python projects listed their dependencies in a flat text file called `requirements.txt`:
 
-The traditional declaration is a `requirements.txt`:
-
-**requirements.txt:**
-
-```
+```text
 requests==2.34.2
 pandas==3.1.1
 numpy==2.5.4
 ```
 
+And installed them with:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### Limitations of pip
+### Why `pip` + `requirements.txt` Shows Its Age
+- **Slow:** Installing a heavy ML or robotics stack with `pip` feels like watching paint dry.
+- **No separation of direct vs. transitive deps:** Either you list only your top-level packages (so sub-packages drift and break), or you run `pip freeze > requirements.txt` and dump 90 messy sub-packages into one file where nobody knows what your project actually imports directly.
+- **No automatic virtualenv sync:** Uninstall a package in code, and it lingers in your `.venv` forever like a ghost.
 
-pip installs packages. It does not run a project.
+That is the exact gap `uv` + `pyproject.toml` + `uv.lock` fills.
 
-- It is slow on large trees.
-- A hand-written `requirements.txt` usually lists direct dependencies only. Transitive versions drift unless you freeze everything.
-- Resolution can pick a combination that later explodes at import time.
-- Virtualenvs are a separate tool.
+---
 
-That is the gap uv fills: one project workflow, a lockfile, and an installer that does not take the afternoon off.
+## Managing Dependencies with `uv`
 
-## Managing Dependencies with uv
+In Chapter 2, we met `uv` as a virtual environment manager. It is also your dependency manager.
 
-Chapter 2 introduced uv as an environment tool. It is also the dependency tool.
+### The Daily Loop: `uv add`, `uv remove`, `uv sync`
 
-Speed matters (often 10–100× pip), but the practical reasons to use it are a real resolver, `uv.lock`, environments that match the project, and a CLI that updates `pyproject.toml` for you. It still understands pip and `requirements.txt` when you are inheriting someone else’s repo.
-
-### The daily path: `uv add`, `uv remove`, `uv sync`
-
-Once you have a project (`uv init` from Chapter 2), you do not “pip install” into it. You declare a dependency and sync.
+Once you've created a project (`uv init`), you never type `pip install`. Instead, you **declare** what you want and let `uv` update `pyproject.toml`, solve the version tree, write `uv.lock`, and sync `.venv` in one shot:
 
 ```bash
-# Runtime dependency — updates pyproject.toml and the lockfile, installs into .venv
+# 1. Add a runtime dependency (needed for your app to run)
 uv add requests
 
-# Development tools — writes the `dev` group ([dependency-groups], PEP 735)
+# 2. Add a development tool (goes into [dependency-groups] dev, PEP 735)
 uv add --dev pytest
 
-# Named group if you want to split lint from test
+# 3. Create a custom named group if you want to separate lint from test
 uv add --group lint ruff
 
-# Constraint at add time
+# 4. Add with a version constraint
 uv add "requests>=2.34.0"
 
-# Take it back out
+# 5. Remove a package (cleans pyproject.toml, uv.lock, AND .venv!)
 uv remove requests
 uv remove --dev pytest
 ```
 
-Install (or reinstall) from the lockfile:
+When you (or a teammate) clone the project onto a new machine:
 
 ```bash
-# Project + the default `dev` group
+# Install everything from uv.lock (runtime + dev group by default)
 uv sync
 
-# Production-like: runtime only, no dev tools
+# Production / Robot / Docker deploy: install ONLY runtime dependencies (skip pytest/ruff)
 uv sync --no-dev
 ```
 
-`uv add --dev pytest` is how local tools get into `[dependency-groups]`. `uv sync` installs them by default so `uv run pytest` works on a fresh clone. Production images and deploy steps should use `uv sync --no-dev`.
-
-Run the project without activating the environment:
+And run commands inside the environment without activating anything:
 
 ```bash
 uv run python main.py
 uv run pytest
-uvx ruff check .     # one-off, not a project dependency
+uvx ruff check .     # runs ruff as a one-off tool without adding it to the project
 ```
 
-Inspect what you actually got:
+Want to see what your dependencies pulled in under the hood?
 
 ```bash
 uv tree
 ```
 
-`uv tree` is the view you want: your packages, and what they pulled in. `uv pip list` exists if you want a flat list. Prefer the tree.
+```text
+myapp v0.1.0
+├── requests v2.34.2
+│   ├── certifi v2026.8.14
+│   ├── charset-normalizer v3.4.3
+│   ├── idna v3.11
+│   └── urllib3 v2.5.0
+└── pytest v9.2.0 (group: dev)
+    ├── iniconfig v2.2.0
+    ├── packaging v25.0
+    └── pluggy v1.6.0
+```
 
-### Using pyproject.toml (Modern Approach)
+`uv tree` shows you the full family tree instead of a mysterious flat list.
 
-The modern declaration is `pyproject.toml`.
+---
 
-**Runtime dependencies** go in `[project.dependencies]`.
-**Local development tools** (pytest, Ruff, type checkers) go in **`[dependency-groups]`** ([PEP 735](https://peps.python.org/pep-0735/)), not in published extras.
+## Inside `pyproject.toml` and `uv.lock`
 
-**pyproject.toml:**
+Modern Python projects store all their configuration in a single standard file: **`pyproject.toml`**.
+
+- **Runtime dependencies** live in `[project.dependencies]`.
+- **Development tools** (`pytest`, `ruff`, type checkers) live in **`[dependency-groups]`** ([PEP 735](https://peps.python.org/pep-0735/)).
 
 ```toml
 [project]
@@ -185,26 +212,28 @@ dev = [
 ]
 ```
 
-> **Optional dependencies vs dependency groups:**
-> `[project.optional-dependencies]` defines *published extras* (for example `pip install mylib[excel]` or `fastapi[standard]`).
-> `[dependency-groups]` is for tools you need while developing and should not ship as package extras. Prefer groups for pytest, Ruff, and ty.
+> [!NOTE]
+> **Optional dependencies vs. Dependency groups:**
+> - `[project.optional-dependencies]` is for **published extras** that end-users can opt into when installing a library (like `fastapi[standard]` or `scipy[plot]`).
+> - `[dependency-groups]` is for **your team's dev tools** (`pytest`, `ruff`, `ty`) that should never be shipped to end-users.
 
-You rarely hand-edit the lists. `uv add` / `uv add --dev` / `uv remove` keep `pyproject.toml` and `uv.lock` in agreement. Edit by hand when you are tightening constraints or adding a comment.
+You rarely need to type these lists by hand—`uv add` and `uv add --dev` edit `pyproject.toml` for you.
 
-### Lock Files
+### Lockfiles (`uv.lock`)
 
-`uv.lock` records exact versions of everything, including transitive dependencies:
+While `pyproject.toml` says *"I need `requests>=2.34.0`"*, **`uv.lock`** records the exact resolved version (`2.34.2`), every sub-dependency (`urllib3==2.5.0`, `idna==3.11`), and cryptographic hashes.
 
 ```bash
-uv sync              # install exact versions from the lockfile
-uv lock --upgrade    # refresh the lockfile toward latest allowed versions
+uv sync              # install exact versions from uv.lock
+uv lock --upgrade    # upgrade uv.lock to the newest versions allowed by pyproject.toml
 ```
 
-**Commit `uv.lock`.** That is how every developer and every CI job install the same tree. `pyproject.toml` says what is allowed; the lockfile says what you actually shipped.
+> [!IMPORTANT]
+> **Always commit `uv.lock` to Git!** That is how your laptop, your teammate's machine, and your GitHub Actions runner are guaranteed to run the exact same code.
 
-### pip-compatible interface (short note)
+### `pip`-Compatible Escape Hatch
 
-uv also speaks pip, which is handy for a throwaway environment or a `requirements.txt` you have not migrated yet:
+Need to work with an older project that still uses `requirements.txt`? `uv` has a drop-in `uv pip` subcommand:
 
 ```bash
 uv pip install requests
@@ -213,34 +242,34 @@ uv pip install -r requirements.txt
 uv pip freeze > requirements.txt
 ```
 
-For a project you own, `uv add` / `uv remove` / `uv sync` are the source of truth. `uv pip install` bypasses `pyproject.toml` unless you are careful. Use it as compatibility, not as the workflow.
-
-If some other system still wants a requirements file, export from the lockfile rather than freezing an ad-hoc environment:
+And if a cloud platform or deployment script demands a `requirements.txt` file, don't maintain it by hand—generate it straight from your lockfile:
 
 ```bash
 uv export --format requirements.txt -o requirements.txt
 ```
 
+---
+
 ## Practical Example: Building a Web Scraper
 
-A small scraper is enough to see the whole loop: init, add, sync, run.
+Let's walk through the complete 60-second loop from empty directory to running code.
 
-### Step 1: Set Up Project
+### Step 1: Initialize the Project
 
 ```bash
-uv python install 3.14   # if you do not already have it
+uv python install 3.14   # if not already installed
 uv init --python 3.14 web-scraper
 cd web-scraper
 ```
 
-### Step 2: Add Dependencies
+### Step 2: Add Runtime and Dev Dependencies
 
 ```bash
 uv add "requests>=2.34.0" "beautifulsoup4>=4.15.0"
 uv add --dev "pytest>=9.2.0" "pytest-cov>=7.1.0"
 ```
 
-Or write `pyproject.toml` by hand (then `uv sync`):
+Take a peek at the `pyproject.toml` that `uv` just updated for you:
 
 ```toml
 [project]
@@ -260,16 +289,14 @@ dev = [
 ]
 ```
 
-### Step 3: Install Dependencies
+### Step 3: Verify the Environment Tree
 
 ```bash
 uv sync
 uv tree
 ```
 
-### Step 4: Write the Scraper
-
-**scraper.py:**
+### Step 4: Write `scraper.py`
 
 ```python
 import requests
@@ -277,17 +304,7 @@ from bs4 import BeautifulSoup
 
 
 def fetch_page_title(url: str) -> str:
-    """Fetch and return the title of a web page.
-
-    Args:
-        url: The URL to fetch
-
-    Returns:
-        The page title
-
-    Raises:
-        requests.RequestException: If the request fails
-    """
+    """Fetch and return the <title> of a web page."""
     response = requests.get(url, timeout=10)
     response.raise_for_status()
 
@@ -303,365 +320,199 @@ if __name__ == "__main__":
     print(f"Page title: {title}")
 ```
 
-### Step 5: Test It
+### Step 5: Run It
 
 ```bash
 uv run python scraper.py
+# Output: Page title: Welcome to Python.org
 ```
 
-Output:
+---
 
+## Version Constraints & Semantic Versioning (SemVer)
+
+Most Python packages follow **Semantic Versioning (`MAJOR.MINOR.PATCH`)**, like `2.34.2`:
+
+```mermaid
+flowchart LR
+    M["2 (MAJOR)\n💥 Breaking API changes"] --- Mi["34 (MINOR)\n✨ New backward-compatible features"]
+    Mi --- P["2 (PATCH)\n🐛 Bug & security fixes"]
 ```
-Page title: Welcome to Python.org
-```
 
-`requests` and `beautifulsoup4` did the heavy lifting. That is the point of a dependency: less code of yours sitting between you and the page title.
-
-## Dependency Version Constraints
-
-Constraints live in `pyproject.toml`. The lockfile then pins the exact build.
+Here is how you express version rules in `pyproject.toml`:
 
 ```toml
 [project]
 dependencies = [
-    "requests==2.34.2",        # Exact version
-    "pandas>=3.1.0",           # Minimum version
-    "numpy>=2.5.0,<3.0.0",     # Version range
+    "requests==2.34.2",        # Exact version only
+    "pandas>=3.1.0",           # Minimum version (any version 3.1.0 or higher)
+    "numpy>=2.5.0,<3.0.0",     # Version range (2.5.0 up to, but not including, 3.0.0)
     "flask~=3.1.0",            # Compatible release (~= 3.1.0 means >=3.1.0, <3.2.0)
 ]
 ```
 
-### Semantic Versioning (SemVer)
-
-Most Python packages use `MAJOR.MINOR.PATCH`:
-
-- **MAJOR** — breaking changes
-- **MINOR** — features, backward compatible in theory
-- **PATCH** — bug fixes
-
-`requests 2.34.2` is major 2, minor 34, patch 2. Treat a major bump as a deliberate upgrade, not a surprise from `uv lock --upgrade`.
-
-### Best Practices for Version Constraints
+### Which Constraint Style Should You Use?
 
 ```toml
-# Good — upper bound on the next breaking major
+# ✅ Great default — allows minor/patch updates, blocks breaking major bumps
 "requests>=2.34.0,<3.0.0"
 
-# Good — mature libraries where you trust the next minor
+# ✅ Good — minimum floor when uv.lock handles the exact pin
 "numpy>=2.5.0"
 
-# Use carefully — exact pin in pyproject.toml
+# ⚠️ Use sparingly — locks pyproject.toml to one exact patch version
 "pandas==3.1.1"
 
-# Avoid — no lower bound, no upper bound, just a name
+# ❌ Avoid — bare package name with no version floor at all
 "requests"
 ```
 
-Exact pins belong in `uv.lock`, which you commit. `pyproject.toml` should say what you can accept so `uv lock --upgrade` has room to move.
+Let `pyproject.toml` define the **acceptable range**, and let `uv.lock` hold the **exact pin**.
 
-## Development vs. Production Dependencies
+---
 
-Split them.
+## Common Dependency Stacks by Domain
 
-**Development:** pytest, Ruff, type checkers, coverage, docs builders. You need them to work on the code. Production does not.
+Depending on what you're building in school or at work, you'll see these classic stacks in `pyproject.toml`:
 
-**Production (runtime):** the libraries the application imports to run — web framework, database driver, HTTP client.
-
-**Example pyproject.toml:**
-
+### 1. Web APIs & Backends
 ```toml
-[project]
-name = "myapp"
-version = "0.1.0"
-requires-python = ">=3.13"
 dependencies = [
-    # Runtime only
-    "fastapi[standard]>=0.162.0",
-    "sqlalchemy>=2.1.0",
-    "pydantic>=2.14.0",
-]
-
-[dependency-groups]
-dev = [
-    "pytest>=9.2.0",
-    "pytest-cov>=7.1.0",
-    "ruff>=0.17.0",
-    "ty",
+    "fastapi[standard]>=0.162.0",  # API framework + Uvicorn server + CLI
+    "sqlalchemy>=2.1.0",           # Database ORM
+    "pydantic>=2.14.0",            # Data validation (also bundled with FastAPI)
 ]
 ```
 
-`fastapi[standard]` is the extra you want for a web app: FastAPI plus the usual server and tooling. Bare `fastapi` is the library only.
-
-```bash
-# Development clone (includes the default dev group)
-uv sync
-
-# Production-like (no pytest, no Ruff)
-uv sync --no-dev
+### 2. Data Science & Machine Learning
+```toml
+dependencies = [
+    "pandas>=3.1.0",         # Tabular data manipulation
+    "numpy>=2.5.0",          # Fast N-dimensional arrays & linear algebra
+    "matplotlib>=3.11.0",    # Plotting & visualization
+    "scikit-learn>=1.9.0",   # Classical machine learning
+]
 ```
 
-## Exploring Packages
+### 3. Robotics, Simulation & Computer Vision
+```toml
+dependencies = [
+    "numpy>=2.5.0",                  # Spatial transforms, matrices & sensor arrays
+    "scipy>=1.16.0",                 # Rotations (scipy.spatial.transform), signal filters & kinematics
+    "mujoco>=3.3.0",                 # Physics simulation for robot arms, quadrupeds & humanoids
+    "opencv-python-headless>=4.11",  # Camera frame processing & computer vision
+]
+```
+*(Note: If you're working with **ROS 2**, system-level message buses like `rclpy` are often installed via OS packages or [Pixi](https://pixi.sh)/RoboStack, while pure-Python planning, vision, and ML modules use `pyproject.toml`.)*
 
-Do a little homework before `uv add`.
+### 4. Developer CLI Tools
+```toml
+dependencies = [
+    "typer>=0.29.0",         # Build CLIs automatically from Python type hints
+    "rich>=15.0.0",          # Beautiful tables, progress bars & colored terminal output
+]
+```
 
-### Check on PyPI
+---
 
-[pypi.org/project/requests](https://pypi.org/project/requests) shows documentation links, versions, download stats, license, and the package’s own dependencies.
+## Updating, Auditing & Resolving Conflicts
 
-### Check the Repository
+### Updating Dependencies on Purpose
 
-Most project pages link to source (often GitHub):
-
-- Read the README
-- Look at recent commits and release cadence
-- Skim open issues for “abandoned?” energy
-- Check the actual docs, not just the README headline
-
-Ruff, for example, lives at [https://github.com/astral-sh/ruff](https://github.com/astral-sh/ruff) — not the old `charliermarsh/ruff` URL you will still find in stale posts.
-
-### Consider Alternatives
-
-HTTP clients, as a sample:
-
-- `requests` — simple, popular, mature
-- `httpx` — modern, async
-- `urllib3` — lower level, fewer extras
-
-Pick for the job, not for the blog post that ranked first this week.
-
-## Updating Dependencies
-
-Update on purpose. Security fixes and stale locks both accumulate.
+Don't let your dependencies rot for two years, and don't upgrade them blindly 10 minutes before a demo:
 
 ```bash
-# Refresh the lockfile toward the latest versions your constraints allow
+# Upgrade all packages in uv.lock to the newest versions allowed by pyproject.toml
 uv lock --upgrade
-
-# Install what the new lockfile says
 uv sync
 
-# One package only
+# Or upgrade just one specific package
 uv lock --upgrade-package requests
 uv sync
+
+# Always run your test suite right after upgrading!
+uv run pytest
 ```
 
-Then run the tests. An upgrade that you did not verify is just a future outage with extra steps.
+### Dealing with Dependency Conflicts
 
-The pip-shaped variants still work (`uv pip list --outdated`, `uv pip install --upgrade requests`). They are not how you update a uv project. Change the lockfile, then sync.
+What happens if two libraries demand incompatible versions of a third library?
 
-## Dealing with Dependency Conflicts
-
-Sometimes two packages demand incompatible versions of a third:
-
-```
+```text
 Package A requires: numpy>=2.4.0,<2.5.0
 Package B requires: numpy>=2.5.0
 ```
 
-Options, in order of sanity:
+Unlike older `pip` versions that would sometimes install a broken combo and let you crash at runtime, **`uv`'s resolver stops immediately and explains the conflict.** To fix it:
+1. Check if upgrading Package A (`uv lock --upgrade-package package-a`) adds support for the newer `numpy`.
+2. Relax an overly strict version pin in your own `pyproject.toml`.
+3. Use `uv tree` to inspect which package is holding back the tree.
 
-1. Upgrade (or, rarely, pin) one of the packages until their requirements overlap.
-2. Replace one of them.
-3. Keep the projects in separate environments — which you already do.
-4. File an issue upstream if a maintained package is stuck on a dead major.
+### Security Auditing (`pip-audit`)
 
-uv’s resolver will refuse an impossible tree instead of installing one that imports with a warning and dies in production. Read `uv tree` when the error message is a wall of versions.
-
-## Security Considerations
-
-### Audit Dependencies
-
-Check installed packages against known vulnerability records:
+Check your dependency tree against known CVE security advisories:
 
 ```bash
 uv add --dev pip-audit
 uv run pip-audit
 ```
 
-Run this in CI, not only when you remember.
+> [!WARNING]
+> **Watch out for typosquatting!** Attackers sometimes publish malicious packages on PyPI with names one letter off from popular libraries (like `reqeusts` instead of `requests`, or `beautifulsoup` instead of `beautifulsoup4`). Double-check the spelling before hitting Enter!
 
-### Keep Dependencies Updated
+---
 
-Unpatched libraries stay unpatched until you refresh the lockfile:
+## Migrating an Old `requirements.txt` Repo to `pyproject.toml`
 
-```bash
-uv lock --upgrade
-uv sync
-uv run pip-audit
-```
-
-Do this on a schedule, then run the test suite. “Latest” is not a strategy if you never look at the diff.
-
-### Review Before Installing
-
-- Prefer packages with real usage, a license, and recent maintenance.
-- For anything that will see secrets or user data, read more than the README.
-- Check the *name*. Typosquatting is a thing; `reqeusts` is not `requests`.
-
-## Best Practices
-
-**Let the lockfile pin production.** Ranges in `pyproject.toml`, exact versions in `uv.lock`, and that lockfile committed. That is how you get both “we can upgrade” and “CI installed what we tested.”
+Inherited a class project or older repo with a `requirements.txt`? You can upgrade it to a modern `uv` project in four commands:
 
 ```bash
-git add pyproject.toml uv.lock
-git commit -m "Add requests and lock the tree"
-```
-
-**Keep runtime and dev dependencies apart.** pytest does not belong in the production image.
-
-```toml
-[dependency-groups]
-dev = ["pytest>=9.2.0", "ruff>=0.17.0", "ty"]
-```
-
-**Leave a breadcrumb in `pyproject.toml`** when the name is not self-explanatory:
-
-```toml
-dependencies = [
-    "requests>=2.34.0",  # HTTP client for API calls
-    "pandas>=3.1.0",     # Data analysis and manipulation
-]
-```
-
-**Maintain it.** Weekly: security-relevant bumps. Monthly: a look at `uv lock --upgrade` plus tests. Quarterly: delete unused dependencies. Unused code is a gift compared to unused dependencies; the latter still install, still break, and still get CVEs.
-
-**Add as little as you can.** Every extra package is more install time, more conflict surface, and more code you did not review. The standard library is allowed to win.
-
-## Common Dependency Patterns
-
-### Web Applications
-
-```toml
-dependencies = [
-    "fastapi[standard]>=0.162.0",  # API framework plus the usual server extras
-    "sqlalchemy>=2.1.0",           # Database ORM
-    "pydantic>=2.14.0",            # Data validation (also pulled in by FastAPI)
-]
-```
-
-### Data Science
-
-```toml
-dependencies = [
-    "pandas>=3.1.0",         # Data manipulation
-    "numpy>=2.5.0",          # Numerical computing
-    "matplotlib>=3.11.0",    # Visualization
-    "scikit-learn>=1.9.0",   # Machine learning
-]
-```
-
-### CLI Tools
-
-```toml
-dependencies = [
-    "typer>=0.29.0",         # CLI from type hints
-    "rich>=15.0.0",          # Terminal output
-]
-```
-
-## Migrating from requirements.txt to pyproject.toml
-
-Existing project, classic `requirements.txt`:
-
-**Step 1: Create pyproject.toml** if you do not have one:
-
-```bash
+# 1. Initialize pyproject.toml
 uv init --python 3.14
-```
 
-Or the minimal file:
-
-```bash
-cat > pyproject.toml << 'EOF'
-[project]
-name = "myproject"
-version = "0.1.0"
-requires-python = ">=3.13"
-dependencies = []
-EOF
-```
-
-**Step 2: Import the requirements**
-
-```bash
+# 2. Import runtime and dev requirements
 uv add -r requirements.txt
-# Dev-only file, if you had one:
-# uv add --dev -r requirements-dev.txt
-```
+# uv add --dev -r requirements-dev.txt   # if you have a dev requirements file
 
-**Step 3: Test**
-
-```bash
+# 3. Sync and run tests
 uv sync
 uv run pytest
+
+# 4. Commit the new files (and optionally git rm requirements.txt)
+git add pyproject.toml uv.lock
 ```
 
-**Step 4: Drop `requirements.txt` once `uv.lock` is committed** (optional; keep it if another tool still consumes it):
-
-```bash
-git rm requirements.txt
-```
+---
 
 ## Quick Reference
 
 ```bash
-# pip basics (you will still see these)
-pip install requests
-pip install -r requirements.txt
-pip freeze > requirements.txt
-
-# uv project workflow (preferred)
+# --- Daily uv Project Workflow (Preferred) ---
 uv init --python 3.14 myapp
 uv add requests
 uv add --dev pytest ruff
 uv remove requests
-uv sync
-uv sync --no-dev
-uv lock --upgrade
-uv tree
-uv run pytest
-uvx ruff check .
+uv sync                  # install runtime + dev deps from uv.lock
+uv sync --no-dev         # install runtime deps only (for production/deploy)
+uv lock --upgrade        # refresh uv.lock to newest allowed versions
+uv tree                  # view dependency tree
+uv run pytest            # run command inside .venv
+uvx ruff check .         # run standalone tool once
 
-# pip-compat, when you need it
+# --- Legacy pip / requirements.txt Compatibility ---
 uv pip install -r requirements.txt
 uv add -r requirements.txt
 uv export --format requirements.txt -o requirements.txt
-
-# pyproject.toml structure
-[project]
-requires-python = ">=3.13"
-dependencies = ["requests>=2.34.0"]
-
-[dependency-groups]
-dev = ["pytest>=9.2.0", "ruff>=0.17.0"]
 ```
 
-## Troubleshooting
+### Troubleshooting Tips
+- **Package Not Found:** Verify the exact package name on [pypi.org](https://pypi.org) (e.g., `beautifulsoup4`, not `bs4`; `scikit-learn`, not `sklearn`) and check that your `requires-python` matches the package's supported Python versions.
+- **Weird Install Failure:** Run `uv add -v <package>` for verbose logs, or `uv cache clean` if a interrupted download left a corrupted wheel in cache.
 
-### Package Not Found
-
-Confirm the name on [PyPI](https://pypi.org). A failed resolve is often a typo, a yanked version, or `requires-python` that excludes the interpreter in `.venv`. `uv python install 3.14` and `uv venv --python 3.14` if the environment is on an older interpreter than the package supports.
-
-### Version Conflicts
-
-```bash
-uv tree
-uv lock          # the resolver explains the clash
-```
-
-`uv pip check` is there if you are in a pip-compat environment and want a quick consistency scan.
-
-### Installation Fails
-
-```bash
-uv add -v requests
-uv cache clean
-```
-
-Verbose output plus a clean cache fixes more “it failed on my machine” installs than any other two commands in this chapter.
+---
 
 ## What's Next?
 
-Dependencies are declared, locked, and installable on a second machine. Next is version control: Git, so the code *and* `pyproject.toml` *and* `uv.lock` have a history you can trust.
+Your project is isolated in `.venv`, and your dependencies are declared in `pyproject.toml` and locked in `uv.lock`. Now we need a time machine to track every change to your code and lockfile—and save you from ever naming a folder `project_final_v3_REAL.zip` again. Next up: **Version Control with Git**.
 
 [← Previous: Virtual Environments](./02-virtual-environments.md) | [Back to README](./README.md) | [Next: Version Control →](./04-version-control.md)

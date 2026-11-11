@@ -2,11 +2,25 @@
 
 [← Previous: LLMs](./11-llms.md) | [Back to README](./README.md) | [Next: FastAPI →](./13-fastapi.md)
 
-## Database Access in Python
+## Database Access in Python (Graduating from `data.json`)
 
-Almost every real application eventually has to remember something. Python's database story is not one library; it is a stack of them, from "I will write the SQL myself, thank you" to "please map this class to a table and also validate the JSON."
+Every hackathon project starts the same way: *"Let's just save the data in a dictionary or a `data.json` file for now!"*
 
-Knowing where each tool sits on that stack is how you avoid using an ORM for a 40-line script, or raw `sqlite3` for a multi-table web app. Both mistakes are popular. Only one of them is a learning experience you will enjoy.
+That works for about two hours—until two requests write to `data.json` at the same time and corrupt the file, or your robot logs 50,000 telemetry rows and your script grinds to a halt re-parsing a 100 MB JSON blob on every loop.
+
+Eventually, every real application needs a database. And Python's database story isn't a single library; it's a **four-layer stack**, ranging from *"I will write the raw SQL strings myself, thank you"* all the way up to *"Please map this Python class to a database table AND validate incoming API JSON automatically."*
+
+Knowing which layer to pick is how you avoid bringing an enterprise ORM to a 30-line sensor-logging script—or writing 400 lines of raw `sqlite3` tuple-unpacking for a multi-table web app.
+
+```mermaid
+flowchart BT
+    L1["1️⃣ Raw SQL (DBAPI / sqlite3 / psycopg)\nYou write SQL strings, get back raw tuples: (1, 'Alice', 30)"]
+    L2["2️⃣ SQL Expression Builder (SQLAlchemy Core)\nYou write composable Python expressions that compile to SQL"]
+    L3["3️⃣ Object-Relational Mapper (SQLAlchemy ORM)\nYou work with Python classes & objects; ORM writes the SQL"]
+    L4["4️⃣ Type-Safe ORM + Validation (SQLModel)\nSQLAlchemy ORM + Pydantic combined: ONE class = DB Table + API Schema!"]
+
+    L1 --> L2 --> L3 --> L4
+```
 
 ### The Four Levels of Abstraction
 
@@ -94,32 +108,34 @@ print(row)
 conn.close()
 ```
 
-### Parameterized Queries
+### Parameterized Queries (How Not to Get Bobby-Tables'd)
 
-Notice the `?` placeholders in the queries above. This is parameterized query syntax, and it is one of the most important habits to build when working with databases.
+Notice the `?` placeholders in the queries above. This is **parameterized query syntax**, and it is the single most important security habit you will ever learn when working with databases.
 
-**Never** build SQL strings by concatenating user input:
+> [!CAUTION]
+> **Never build SQL strings with f-strings or `+` concatenation on user input!**
+> That is how **SQL Injection** happens—where a clever user types `' OR '1'='1` into a login box and tricks your database into dumping every row in the table.
+
+**❌ DANGEROUS — SQL Injection Vulnerability:**
 
 ```python
-# DANGEROUS — SQL injection vulnerability
 name = input("Enter a name: ")
 cursor.execute(f"SELECT * FROM users WHERE name = '{name}'")
 # A user who enters:  ' OR '1'='1
-# turns the query into:  SELECT * FROM users WHERE name = '' OR '1'='1
-# which returns every row in the table.
+# turns the query into:  SELECT * FROM users WHERE name = '' OR '1'='1'
+# which evaluates to TRUE for every single row in the users table!
 ```
 
-**Always** use parameterized queries:
+**✅ SAFE — Parameterized Queries:**
 
 ```python
-# SAFE — the database driver handles escaping
 name = input("Enter a name: ")
 cursor.execute("SELECT * FROM users WHERE name = ?", (name,))
 ```
 
-The database driver sends the query and the parameters separately. The database engine never interprets the parameter value as SQL, so injection is impossible.
+With `?` placeholders, the database driver sends the SQL command structure and the data values **separately**. Even if the user's name is `'; DROP TABLE users; --`, the database treats it as a harmless literal string, never as executable SQL!
 
-Different drivers use different placeholder styles (`?` for `sqlite3`, `%s` for `psycopg`), but the rule is the same: pass values as parameters, never interpolate them into the SQL string.
+*(Note: `sqlite3` uses `?` as the placeholder, while PostgreSQL's `psycopg` uses `%s`—even with `%s`, you still pass the tuple as the second argument to `cursor.execute(sql, (val,))`, never with Python's `%` string operator!)*
 
 ### Commit and Rollback
 
@@ -435,6 +451,15 @@ A SQLModel class is simultaneously:
 
 - A **SQLAlchemy ORM model** — it can be used as a database table
 - A **Pydantic model** — it can validate and serialize JSON data
+
+```mermaid
+flowchart TB
+    SM["🦸 class Hero(SQLModel, table=True)\nid: int | None\nname: str\nsecret_name: str\nage: int | None"]
+    SA["🗄️ SQLAlchemy ORM\nCreates SQL tables, runs SELECT/INSERT/UPDATE,\nmanages transactions & foreign keys"]
+    PY["🛡️ Pydantic v2\nValidates JSON types, serializes API responses,\npowers FastAPI /docs"]
+    SM --> SA
+    SM --> PY
+```
 
 This is "the best of both worlds": SQLAlchemy's production-proven database layer with Pydantic's ergonomic type safety and validation. The punchline, which the next chapter will not even try to hide, is that FastAPI and SQLModel were designed to share a wardrobe.
 

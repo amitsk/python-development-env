@@ -4,11 +4,11 @@
 
 ## What is Code Formatting?
 
-Formatting is how the code looks: indentation, spacing, line breaks, quotes. Linting asks "is this wrong?" Formatting asks "is this consistent?"
+If **linting** asks *"Is this code buggy?"*, **formatting** asks *"Is this code readable and consistent?"*
 
-Same function, two presentations:
+Formatting controls indentation, spaces around operators, single vs. double quotes, and where long lines wrap. Look at the exact same function written two ways:
 
-**Unformatted:**
+**Unformatted (the "2 a.m. before the deadline" style):**
 ```python
 def calculate_total(items,tax_rate=0.1,discount=0):
     subtotal=sum([item['price']for item in items])
@@ -17,7 +17,7 @@ def calculate_total(items,tax_rate=0.1,discount=0):
     return {"subtotal":subtotal,"tax":tax,"total":total}
 ```
 
-**Formatted:**
+**Formatted (after 5 milliseconds of `ruff format`):**
 ```python
 def calculate_total(items, tax_rate=0.1, discount=0):
     subtotal = sum([item["price"] for item in items])
@@ -26,67 +26,77 @@ def calculate_total(items, tax_rate=0.1, discount=0):
     return {"subtotal": subtotal, "tax": tax, "total": total}
 ```
 
-Both run. One is a kindness to whoever reads it next, which is often you.
+Python's interpreter executes both identically. Humans (including you next week) can read the second one without squinting.
 
-## Why Format?
+---
 
-Consistent code is easier to scan. Your eyes stop compensating for each author's spacing hobby.
+## Why Automate Formatting?
 
-A formatter also ends the tabs-versus-spaces discussion. You can still have the discussion. It just no longer belongs in the pull request.
+1. **Ends Style Debates Forever:** Should a 5-argument function signature stay on one line or wrap? Single quotes or double quotes? Put a formatter in your repo and nobody ever wastes a Pull Request comment arguing about whitespace again.
+2. **Clean Git Diffs:** Without a formatter, if Teammate A uses single quotes and Teammate B's editor converts them to double quotes, a 2-line bugfix turns into a 400-line Git diff where nobody can spot the actual code change.
+3. **Zero Mental Overhead:** You can type ugly, cramped code as fast as you think, hit `Ctrl+S` / `Cmd+S`, and watch it snap into clean PEP 8 layout automatically.
 
-Reviews stay on behavior. Diffs stay on the change you meant to make, not on a drive-by reindent. None of this is glamorous. It is how a repo stays readable after the third contributor.
-
-## Other Formatters
-
-Ruff is the formatter in this guide. You will still see these names.
-
-**[Black](https://github.com/psf/black)** is the historical "uncompromising" formatter. Almost no knobs, identical output every time, still widely used. Ruff's formatter is designed to be compatible with Black's style, which is why switching is usually a config change rather than a rewrite.
-
-```bash
-uvx black --check .
+```mermaid
+flowchart LR
+    Raw["✍️ Type Fast & Messy\nx=[1,2,3]; y={'a':1}"] -- "Save / uv run ruff check --fix" --> Lint["🔍 Step 1: ruff check --fix\nSorts imports & removes dead code"]
+    Lint -- "Save / uv run ruff format" --> Fmt["✨ Step 2: ruff format\nSnaps spacing, quotes & line wraps"]
+    Fmt --> Clean["✅ Clean, Uniform Diff\nReady for git commit"]
 ```
 
-**[autopep8](https://github.com/hhatto/autopep8)** nudges code toward PEP 8. Gentler, less complete.
+---
 
-**[YAPF](https://github.com/google/yapf)** (Yet Another Python Formatter) is Google's highly configurable option. Powerful if you want a style committee. Most teams do not.
+## The Python Formatter Landscape
+
+- **[Ruff (`ruff format`)](https://github.com/astral-sh/ruff):** The default in this guide. Written in Rust, built right into the same `ruff` binary you installed in Chapter 5, and **99.9% style-compatible with Black**.
+- **[Black](https://github.com/psf/black):** The legendary "uncompromising Python code formatter" (famous for the slogan *"Any color you like, as long as it's black"*). Black pioneered opinionated, zero-config formatting in Python and is still used in thousands of repos (`uvx black --check .`). Ruff's formatter was explicitly designed as a drop-in, ultra-fast replacement for Black.
+- **[autopep8](https://github.com/hhatto/autopep8) & [YAPF](https://github.com/google/yapf):** Older formatters you may occasionally spot in legacy repositories.
+
+---
 
 ## Formatting with Ruff
 
-Ruff's formatter is the same `ruff` binary you installed for linting. It is mature, Black-compatible, and fast. Use it as the project formatter unless you have a specific reason not to.
-
-If you followed Chapter 5, you already have it:
+Since you already added `ruff` in Chapter 5, you already have the formatter installed! No extra package required:
 
 ```bash
 uv add --dev "ruff>=0.17.0"
 uv run ruff --version
 ```
 
-Or without a project install:
+Or run it anywhere without a project install:
 
 ```bash
 uvx ruff format .
 ```
 
-### Usage
+*(See the [uv tools guide](https://docs.astral.sh/uv/guides/tools/) and [Ruff Formatter docs](https://docs.astral.sh/ruff/formatter/).)*
+
+### Everyday Commands
 
 ```bash
-# Whole tree
+# Format every Python file in the project (writes changes to disk)
 uv run ruff format .
 
-# One path
+# Format a specific directory or file
 uv run ruff format src/
 uv run ruff format messy.py
 
-# CI: fail if anything would change
+# Dry-run for CI: exit with an error code if any file is unformatted (does NOT modify files)
 uv run ruff format --check .
 
-# Preview the rewrite
+# Preview the exact diff Ruff WOULD make without touching the files
 uv run ruff format --diff .
 ```
 
-`--check` is the formatting equivalent of `ruff check`: it reports, it does not write.
+> [!TIP]
+> **Remember the difference:**
+> - Locally while coding: `uv run ruff format .` (rewrites your files)
+> - In GitHub Actions CI: `uv run ruff format --check .` (fails the build if someone forgot to format)
 
-### Configuration
+---
+
+## Configuring the Formatter in `pyproject.toml`
+
+Ruff's defaults (88-character line length, double quotes, 4 spaces) match Black out of the box, so you technically don't have to configure anything. If you want to make the settings explicit in `pyproject.toml`:
 
 ```toml
 [project]
@@ -103,11 +113,13 @@ line-ending = "lf"
 docstring-code-format = true
 ```
 
-88 characters is Black's default and Ruff's. PEP 8 said 79; plenty of projects use 100 or 120. Pick one number, put it in `pyproject.toml`, and stop talking about it.
+*(Bonus: `docstring-code-format = true` even formats Python code examples inside your docstrings!)*
 
-### Practical example
+---
 
-**1. A file that has never met a formatter (`messy.py`):**
+## Hands-On: Cleaning Up `messy.py`
+
+### 1. Create `messy.py`
 
 ```python
 import sys,os
@@ -140,19 +152,18 @@ if __name__=='__main__':
     print(f"Results: {result}")
 ```
 
-**2. Format it:**
+### 2. Run the Power Combo: Lint Fix + Format
+
+Why run both? Because **`ruff format` only changes whitespace and quotes—it never deletes unused code or splits `import sys, os`.** That's the linter's job (`ruff check --fix`). Running them back-to-back cleans everything:
 
 ```bash
+uv run ruff check --fix messy.py
 uv run ruff format messy.py
 ```
 
-**3. Result:**
+### 3. The Result
 
 ```python
-import sys, os
-import json
-
-
 def process_data(data, multiplier=2, offset=0):
     """Process data with multiplier and offset"""
     results = []
@@ -182,39 +193,62 @@ if __name__ == "__main__":
     print(f"Results: {result}")
 ```
 
-Spacing, blank lines, and quotes are now consistent. Notice `import sys, os` is still one line: the **formatter** does not split imports. That is a lint fix (`E401` / `I001`):
+Unused `sys`, `os`, and `json` imports are gone, spacing around `=` and `*` is clean, quotes are unified to `"`, and PEP 8's two-blank-line rule between top-level functions and classes is applied automatically.
 
-```bash
-uv run ruff check --fix messy.py
-uv run ruff format messy.py
+---
+
+## Cool Tricks Ruff's Formatter Does Automatically
+
+### 1. Wrapping Long Function Signatures
+**Before:**
+```python
+def configure_pid_controller(kp, ki, kd, max_integral, min_output, max_output, sample_rate_hz=100.0):
+    pass
 ```
 
-Lint, then format. That order is the whole workflow.
-
-### One tool, two commands
-
-```bash
-uv run ruff check --fix . && uv run ruff format .
+**After:**
+```python
+def configure_pid_controller(
+    kp,
+    ki,
+    kd,
+    max_integral,
+    min_output,
+    max_output,
+    sample_rate_hz=100.0,
+):
+    pass
 ```
 
-A config that covers both:
+### 2. The "Magic Trailing Comma"
+Ever wonder why Python developers put a comma after the *last* item in a list or dict?
+If you put a **trailing comma** after the last element (`"port": 5432,`) and run `ruff format`, Ruff knows you *want* that dictionary expanded onto multiple lines, even if it's short enough to fit on one line! Remove the trailing comma, and Ruff collapses short dicts onto a single line.
 
-```toml
-[tool.ruff]
-line-length = 88
-target-version = "py314"
+### 3. Sorting Imports into Three Clean Blocks (via rule `I`)
+When you enable `"I"` in `[tool.ruff.lint]`, `ruff check --fix` automatically groups your imports into:
+1. **Standard library** (`import json`, `import math`, `import os`)
+2. **Third-party packages** (`import fastapi`, `import numpy as np`)
+3. **Your own project modules** (`from myapp.sensors import Lidar`)
 
-[tool.ruff.lint]
-select = ["E", "W", "F", "I", "B", "C4", "UP"]
+---
 
-[tool.ruff.format]
-quote-style = "double"
-```
+## Ruff vs. Black at a Glance
 
-### VS Code
+| Feature | Ruff (`ruff format`) | Black |
+|---------|----------------------|-------|
+| **Speed** | ~30–100× faster (Rust) | Fast enough for small repos, slower on large ones |
+| **Style output** | >99.9% Black-compatible | The original standard |
+| **Includes Linter + Import Sorter?** | Yes (one binary does all three!) | No (needs separate Flake8 + isort) |
+| **Configuration** | `pyproject.toml` | `pyproject.toml` |
+| **When to pick** | Default for all new projects | Existing repos already standardized on Black |
 
-Official Ruff extension from Astral, then `.vscode/settings.json`:
+---
 
+## Format-on-Save + Pre-Commit (Set It and Forget It)
+
+Just like in Chapter 5, combine **VS Code Format-on-Save** (for instant feedback while you type) with **pre-commit** (so nobody on your team can commit unformatted code):
+
+**.vscode/settings.json:**
 ```json
 {
     "[python]": {
@@ -228,24 +262,7 @@ Official Ruff extension from Astral, then `.vscode/settings.json`:
 }
 ```
 
-Save formats, fixes, and sorts imports. Solo work is nicer when the file is already clean before it hits git.
-
-### Format on save vs format on commit
-
-**On save** (good for you): immediate feedback, you never stare at an unformatted buffer.
-
-**On commit** (good for a team): everyone gets the same result, even from an editor that is not VS Code. Use pre-commit.
-
-Do both. On-save keeps you honest; the hook keeps the repo honest.
-
-### Pre-commit
-
-```bash
-uv add --dev pre-commit
-```
-
-`.pre-commit-config.yaml`:
-
+**.pre-commit-config.yaml:**
 ```yaml
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -256,160 +273,34 @@ repos:
       - id: ruff-format
 ```
 
-```bash
-uv run pre-commit install
-```
+> [!WARNING]
+> **Formatting an Existing Legacy Repo? Use a Dedicated Commit!**
+> If you join a project that has never used a formatter and you run `uv run ruff format .` for the first time, it might touch 80 files. **Never mix a massive formatting pass into the same commit as a bugfix or new feature!** Make one standalone commit (`git commit -m "Apply Ruff formatting across repo"`) so reviewers don't have to hunt for your 5 lines of logic inside 3,000 lines of whitespace changes.
 
-`--exit-non-zero-on-fix` means "I cleaned this up; please look at it and commit again." That is the correct failure.
-
-## Ruff vs Black
-
-| Feature | Ruff | Black |
-|---------|------|-------|
-| Speed | Much faster | Baseline |
-| Black-compatible style | Yes | N/A |
-| Linting in the same tool | Yes | No |
-| Maturity | Production default (0.17.x) | Long-standing (2018) |
-| Knobs | A few (quotes, indent, line length) | Almost none |
-| Adoption | Default on new projects | Still everywhere |
-
-New project: Ruff. Existing Black project: Ruff is the usual replacement. Run `ruff format --check` after switching; remaining diffs are rare and small.
-
-## Habits That Stick
-
-Turn formatting on before the repo has a personality. Reformatting 40,000 lines later is a commit nobody wants to review.
-
-When you *do* reformat an existing tree, make that the only change in the commit:
-
-```bash
-uv run ruff format .
-git add .
-git commit -m "Apply Ruff formatting to entire codebase"
-```
-
-`git blame` can skip that commit. Future diffs stay readable.
-
-Write the two commands in the README so nobody has to guess:
-
-```markdown
-## Code Style
-
-This project uses Ruff for linting and formatting.
-
-- Format: `uv run ruff format .`
-- Lint: `uv run ruff check --fix .`
-```
-
-Editor on-save, pre-commit, and CI `--check` are the same rule enforced three times. That is the point.
-
-## Common Rewrites
-
-### Long signatures
-
-**Before:**
-```python
-def create_user(username, email, first_name, last_name, date_of_birth, address, phone_number, is_active=True):
-    pass
-```
-
-**After:**
-```python
-def create_user(
-    username,
-    email,
-    first_name,
-    last_name,
-    date_of_birth,
-    address,
-    phone_number,
-    is_active=True,
-):
-    pass
-```
-
-### Long literals
-
-**Before:**
-```python
-config = {"database": "postgresql", "host": "localhost", "port": 5432, "username": "admin", "password": "secret"}
-```
-
-**After:**
-```python
-config = {
-    "database": "postgresql",
-    "host": "localhost",
-    "port": 5432,
-    "username": "admin",
-    "password": "secret",
-}
-```
-
-### Import order (linter, not formatter)
-
-`ruff format` will not sort this. `ruff check --fix` with rule `I` will:
-
-**Before:**
-```python
-import os
-from mypackage import helpers
-import sys
-import json
-```
-
-**After:**
-```python
-import json
-import os
-import sys
-
-from mypackage import helpers
-```
-
-stdlib, third-party, first-party, each block sorted. You do not maintain this by hand.
-
-## Existing Codebases
-
-```bash
-# See the blast radius
-uv run ruff format --diff . | less
-
-# Format one package, run tests
-uv run ruff format src/module1/
-uv run pytest
-
-# Then the rest, in its own commit
-uv run ruff format .
-git add .
-git commit -m "Apply Ruff formatting"
-```
-
-Do not mix a reformat with a feature. Reviewers deserve that much.
+---
 
 ## Quick Reference
 
 ```bash
+# Install Ruff
 uv add --dev "ruff>=0.17.0"
 
-uv run ruff format .                 # write
+# Format files (modifies files in place)
+uv run ruff format .
 uv run ruff format file.py
-uv run ruff format --check .         # CI
+
+# Check formatting in CI (does NOT modify files; exits non-zero if unformatted)
+uv run ruff format --check .
 uv run ruff format --diff .
 
+# The Daily Power Combo (Lint + Import Sort + Format)
 uv run ruff check --fix . && uv run ruff format .
-
-uvx ruff format .
-
-# [tool.ruff]
-# line-length = 88
-# target-version = "py314"
-# [tool.ruff.format]
-# quote-style = "double"
-# indent-style = "space"
 ```
+
+---
 
 ## What's Next?
 
-The code is consistent. Next you prove it does what you think it does: unit tests with pytest.
+Your code is clean, free of obvious lint bugs, and formatted consistently. Now comes the million-dollar question: **Does your code actually compute the right answers—and will it still work after you refactor it next month?** Next up: **Unit Testing with `pytest`**.
 
 [← Previous: Linting](./05-linting.md) | [Back to README](./README.md) | [Next: Unit Testing →](./07-unit-testing.md)

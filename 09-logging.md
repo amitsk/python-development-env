@@ -2,55 +2,69 @@
 
 [← Previous: Static Type Checking](./08-static-type-checking.md) | [Back to README](./README.md) | [Next: CI/CD →](./10-ci-cd.md)
 
-## Why Logging Matters
+## Why `print("HERE 2")` Stops Working
 
-Every application needs a way to report what it is doing. The simplest approach is `print()`:
+We have all debugged a program like this:
 
 ```python
 print("Starting job...")
-print(f"Processing {len(records)} records")
-print("Done.")
+print("got here 1")
+print(f"x is {x}")
+print("WHY IS THIS NONE???")
 ```
 
-This works for a ten-line script. It falls apart the moment you care about *when* something happened, *how bad* it was, or *where* the message should go.
+`print()` is totally fine for a 15-line homework script. It becomes a disaster the moment your code runs on a web server, an AWS Lambda function, or a headless Raspberry Pi bolted to a robot:
 
-`print()` cannot:
+- **No Timestamps:** Did that error happen 2 seconds ago or 4 hours ago?
+- **No Severity Levels:** You can't turn off noisy debug messages in production without deleting `print()` lines across 20 files.
+- **No Source Context:** Which file, function, and line number printed `Connection failed`?
+- **No Routing:** `print()` just dumps text to `stdout`. It can't simultaneously show pretty colored warnings in your terminal, save detailed debug logs to a rotating file on disk, and ship structured JSON errors to Datadog or CloudWatch.
 
-- Turn debug chatter on in development and off in production without editing code
-- Attach a timestamp, severity, or request ID
-- Send errors to a file (or CloudWatch, or Datadog) while keeping info on stdout
-- Filter by module without a pile of `if` statements you will regret
+**Logging** gives you all of that—a volume knob, a timestamp, caller info, and smart routing:
 
-Logging is that same idea with a volume knob, a clock, and a forwarding address.
+```mermaid
+flowchart LR
+    Code["🐍 logger.info('Battery at 18%', voltage=11.1)"] --> Router{"🔀 Logger & Level Filter"}
+    Router -- "INFO+ (Human-readable + Colors)" --> Term["🖥️ Terminal (stderr)"]
+    Router -- "DEBUG+ (Auto-rotates at 10 MB)" --> File["📁 logs/rover.log.gz"]
+    Router -- "WARNING+ (Structured JSON)" --> Cloud["☁️ CloudWatch / Datadog"]
+```
 
-This chapter covers three tools that still dominate Python logging:
+---
 
-| Tool | Role |
-|------|------|
-| [stdlib `logging`](https://docs.python.org/3/library/logging.html) | Zero dependencies, the API everyone else speaks |
-| [Loguru](https://github.com/Delgan/loguru) | Ergonomic logging with almost no boilerplate |
-| [Picologging](https://github.com/microsoft/picologging) | C-speed replacement for the stdlib API (still beta) |
+## The Three Logging Tools Worth Knowing
 
-## The Standard Library: `logging`
+| Tool | The Pitch |
+|------|-----------|
+| **[stdlib `logging`](https://docs.python.org/3/library/logging.html)** | Built into Python. Zero dependencies, slightly verbose setup, spoken by every library on PyPI. |
+| **[Loguru](https://github.com/Delgan/loguru)** | **Our #1 pick for new projects.** Zero boilerplate, automatic colors, easy file rotation, and 1-flag JSON output. |
+| **[Picologging](https://github.com/microsoft/picologging)** | Microsoft's C-accelerated drop-in for `logging` (still beta; wheels only through Python 3.12). |
 
-Python's built-in `logging` module is the baseline. Every other library either wraps it, intercepts it, or pretends to be it. Learn these concepts once and they transfer.
+---
 
-### Log Levels
+## 1. Python's Standard Library: `logging`
+
+Every Python developer needs to know the built-in `logging` module because frameworks like FastAPI, Uvicorn, SQLAlchemy, and `httpx` all use it under the hood.
+
+### The Five Standard Log Levels
+
+Logs are ranked by severity from lowest (`DEBUG`) to highest (`CRITICAL`):
 
 ```python
 import logging
 
-# Five standard levels, in increasing severity:
-logging.debug("Detailed diagnostic info")      # DEBUG
-logging.info("Normal operation")               # INFO
-logging.warning("Something unexpected")        # WARNING
-logging.error("Something failed")              # ERROR
-logging.critical("Application cannot continue")  # CRITICAL
+logging.debug("Detailed diagnostic info (e.g., raw sensor packet bytes)")  # 10
+logging.info("Normal milestone (e.g., Server started on port 8000)")       # 20
+logging.warning("Something sketchy, but we recovered (e.g., Retry #1)")    # 30
+logging.error("An operation failed! (e.g., Database query timed out)")     # 40
+logging.critical("Everything is on fire (e.g., Out of disk / E-stop!)")    # 50
 ```
 
-By default, only WARNING and above are shown. That is why a fresh `logging.info("hello")` appears to do nothing — it is not broken, it is being polite. You set the threshold when you configure logging.
+> [!TIP]
+> **Why did `logging.info("hello")` print nothing?!**
+> By default, Python's `logging` module sets its threshold to **`WARNING`**, so it silently ignores `DEBUG` and `INFO` until you configure it! It isn't broken—it's just waiting for you to turn the volume knob up.
 
-### Basic Setup
+### Basic Setup (`basicConfig` & Named Loggers)
 
 ```python
 import logging
@@ -61,49 +75,35 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
+# Always create a named logger using __name__ (the current module's name!)
 logger = logging.getLogger(__name__)
 
-logger.debug("Debug message")
-logger.info("Application started")
-logger.warning("Config file not found, using defaults")
-logger.error("Failed to connect to database")
+logger.debug("Calibrating IMU gyroscope...")
+logger.info("Rover telemetry node started")
+logger.warning("Wi-Fi signal weak (-82 dBm), buffering locally")
+logger.error("Failed to open /dev/ttyUSB0 lidar port")
 ```
 
 Output:
 
-```
-2026-08-28 12:00:00 DEBUG    myapp.main: Debug message
-2026-08-28 12:00:00 INFO     myapp.main: Application started
-2026-08-28 12:00:00 WARNING  myapp.main: Config file not found, using defaults
-2026-08-28 12:00:00 ERROR    myapp.main: Failed to connect to database
-```
-
-`basicConfig()` is enough for scripts. Larger apps usually create handlers and formatters by hand so console and file output can disagree about verbosity.
-
-### Named Loggers
-
-Use `logging.getLogger(__name__)` in every module. The name follows the package hierarchy:
-
-```python
-# In myapp/database.py
-logger = logging.getLogger(__name__)  # "myapp.database"
-
-# In myapp/api/routes.py
-logger = logging.getLogger(__name__)  # "myapp.api.routes"
+```text
+2026-11-10 12:00:00 DEBUG    rover.sensors: Calibrating IMU gyroscope...
+2026-11-10 12:00:00 INFO     rover.sensors: Rover telemetry node started
+2026-11-10 12:00:00 WARNING  rover.sensors: Wi-Fi signal weak (-82 dBm), buffering locally
+2026-11-10 12:00:00 ERROR    rover.sensors: Failed to open /dev/ttyUSB0 lidar port
 ```
 
-You can then turn the volume up in one corner of the app without drowning in the rest:
+### Why `logging.getLogger(__name__)` Matters
+Using `__name__` automatically names the logger after your package structure (`myapp.database`, `myapp.api.routes`). That lets you crank up `DEBUG` logs on your own broken module while keeping noisy third-party libraries quiet:
 
 ```python
 logging.getLogger("myapp.database").setLevel(logging.DEBUG)
-logging.getLogger("myapp.api").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 ```
 
-Never use the root logger (`logging.info(...)`) from library-style code. Named loggers are how you keep SQLAlchemy's chatter from looking like your own.
+### Handlers and Formatters (Routing Logs to Multiple Places)
 
-### Handlers and Formatters
-
-Handlers decide *where* messages go. Formatters decide *how they look*.
+In `logging`, **Handlers** decide *where* logs go (console vs. file), and **Formatters** decide *how* they look:
 
 ```python
 import logging
@@ -111,10 +111,12 @@ import logging
 logger = logging.getLogger("myapp")
 logger.setLevel(logging.DEBUG)
 
+# Handler 1: Show only INFO and above on the console
 console = logging.StreamHandler()
 console.setLevel(logging.INFO)
 console.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
 
+# Handler 2: Save EVERYTHING (DEBUG and above) with timestamps into app.log
 file_handler = logging.FileHandler("app.log")
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(
@@ -125,25 +127,9 @@ logger.addHandler(console)
 logger.addHandler(file_handler)
 ```
 
-A logger's own level is a first filter. Each handler can filter again. Debug lines can land in a file while the console stays readable.
+### Structured JSON Logging with `python-json-logger`
 
-### Structured Logging with `logging`
-
-Machines prefer fields to sentences. The `extra` dict is the stdlib's way to attach context:
-
-```python
-logger.info(
-    "Request completed",
-    extra={
-        "method": "GET",
-        "path": "/api/users",
-        "status": 200,
-        "duration_ms": 42,
-    },
-)
-```
-
-Those keys only appear if your formatter knows about them. For JSON — the format log aggregators actually want — use a JSON formatter. [python-json-logger](https://github.com/nhairs/python-json-logger) is a common choice:
+When your app runs in production, cloud log search tools (AWS CloudWatch, Datadog, Grafana Loki) prefer **JSON fields** over plain sentences so you can filter by `status == 500` or `duration_ms > 1000`. With stdlib `logging`, you pass an `extra` dict and pair it with **[python-json-logger](https://github.com/nhairs/python-json-logger)**:
 
 ```bash
 uv add python-json-logger
@@ -155,45 +141,54 @@ from pythonjsonlogger.json import JsonFormatter
 
 handler = logging.StreamHandler()
 handler.setFormatter(JsonFormatter())
+
 logger = logging.getLogger("myapp")
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
+
+logger.info(
+    "Request completed",
+    extra={"method": "GET", "path": "/api/users", "status": 200, "duration_ms": 42},
+)
 ```
 
-Check the library's current docs if the import path looks unfamiliar. The package has been through a fork; older tutorials still show `pythonjsonlogger.jsonlogger`.
+---
 
-## Loguru
+## 2. Loguru: Logging for Humans
 
-[Loguru](https://github.com/Delgan/loguru) replaces the handler/formatter ritual with one object you import and start using. Colored output, timestamps, and caller info come for free. For new projects, this is the library we recommend.
+If setting up `StreamHandler`, `FileHandler`, `Formatter`, and `getLogger(__name__)` feels like too much ceremony just to print a timestamped line, meet **[Loguru](https://github.com/Delgan/loguru)**.
 
 ```bash
 uv add loguru
 ```
 
-### Zero-Config Default Sink
+### Zero-Config Out of the Box
+
+Import `logger` from `loguru` and call it. That's it!
 
 ```python
 from loguru import logger
 
 logger.debug("Debug message")
 logger.info("Application started")
-logger.warning("Config file not found")
-logger.error("Failed to connect")
-logger.critical("Unrecoverable error")
+logger.warning("Config file not found, using defaults")
+logger.error("Failed to connect to database")
+logger.critical("Unrecoverable hardware fault")
 ```
 
-No `basicConfig()`, no `getLogger(__name__)`. There is one `logger`, pre-configured to write to stderr. That is the whole pitch, and it delivers.
+Out of the box, Loguru gives you colored terminal output, millisecond timestamps, severity level, module name, function name, and exact line number—with zero setup code.
 
-### Configuring Sinks
+### Configuring Sinks (Console, Rotating Files, and JSON)
 
-A *sink* is Loguru's word for a destination (what stdlib logging calls a handler):
+Loguru calls destinations **sinks**. Want pretty colors in your terminal, automatic 10 MB file rotation + `.gz` compression on disk, and structured JSON for production? It takes three `logger.add()` calls:
 
 ```python
 import sys
 from loguru import logger
 
-logger.remove()  # drop the default stderr sink
+logger.remove()  # Remove the default stderr sink so we can customize it
 
+# 1. Pretty colored console output (INFO and above)
 logger.add(
     sys.stderr,
     level="INFO",
@@ -206,62 +201,63 @@ logger.add(
     ),
 )
 
+# 2. Rotating, compressed debug log file on disk!
 logger.add(
     "logs/app.log",
     level="DEBUG",
-    rotation="10 MB",    # new file when this one fills up
-    retention="7 days",  # delete older rotated files
-    compression="gz",    # compress the ones you keep
+    rotation="10 MB",    # Start a new file when app.log hits 10 MB
+    retention="7 days",  # Automatically delete logs older than 7 days
+    compression="gz",    # Compress rotated logs to save disk space
 )
 
-# JSON for production / log shipping
+# 3. Structured JSON logs for production (just add serialize=True!)
 logger.add("logs/app.json", level="INFO", serialize=True)
 ```
 
-`serialize=True` is Loguru's JSON switch. No extra formatter package required.
+> [!TIP]
+> **Why `rotation` and `retention` are lifesavers:** On a cloud VM or a Raspberry Pi SD card, an un-rotated log file in a 100 Hz control loop will eventually fill 100% of the disk and crash the whole machine. Loguru's `rotation="10 MB", retention="7 days", compression="gz"` solves log management in three keyword arguments.
 
-### Structured Context with `logger.bind()`
+### Attaching Context with `logger.bind()`
 
-```python
-from loguru import logger
-
-request_logger = logger.bind(request_id="abc-123", user_id=42)
-
-request_logger.info("Processing request")
-request_logger.debug("Query executed", query="SELECT ...")
-```
-
-Bound fields travel with every subsequent message from that logger. This is how you correlate a request across functions without threading an ID through every signature.
-
-### Exception Tracebacks
+When handling a web request or tracking a specific task, `logger.bind()` attaches key-value fields to every log line automatically:
 
 ```python
 from loguru import logger
 
-@logger.catch  # logs the exception with a full traceback
-def process(data):
-    return data["key"]  # KeyError if the key is missing
+request_logger = logger.bind(request_id="req-981", user_id=42)
 
-process({})
+request_logger.info("Processing checkout")
+request_logger.debug("Charged card", amount_usd=19.99)
 ```
 
-`@logger.catch` logs the crash; it does not magically make the error disappear. For `try`/`except` you already own, use `logger.exception()`:
+### Rich Exception Tracebacks (`logger.exception` & `@logger.catch`)
+
+When an exception happens, `logger.exception()` logs both your message and a full traceback showing the actual values of local variables at the moment of the crash:
 
 ```python
+from loguru import logger
+
 try:
-    result = risky_operation()
-except Exception:
-    logger.exception("Operation failed")  # message + traceback
+    speed = distance_m / elapsed_seconds
+except ZeroDivisionError:
+    logger.exception("Failed to compute velocity (elapsed_seconds was 0!)")
 ```
 
-### Intercepting stdlib Logging
+Or decorate an entry-point function with `@logger.catch` to automatically log any unhandled crash:
 
-Third-party libraries (SQLAlchemy, httpx, uvicorn, …) still use `logging`. Route that output through Loguru with an `InterceptHandler`:
+```python
+@logger.catch
+def process_packet(packet: dict) -> str:
+    return packet["payload"]  # Logs full variable values if 'payload' key is missing!
+```
+
+### Intercepting Standard Library `logging` into Loguru
+
+Since libraries like FastAPI/Uvicorn and SQLAlchemy use standard `logging`, you can route all their logs into Loguru so your whole app speaks one format:
 
 ```python
 import inspect
 import logging
-
 from loguru import logger
 
 
@@ -285,19 +281,20 @@ class InterceptHandler(logging.Handler):
 logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 ```
 
-After this, `logging.getLogger(...)` calls flow through your Loguru sinks. One format, one rotation policy, one place to look.
+---
 
-## Picologging
+## 3. Picologging (High-Speed C Extension — With a Catch)
 
-[Picologging](https://github.com/microsoft/picologging) is a Microsoft-built, C-accelerated reimplementation of the stdlib `logging` API. Change the import, keep the rest of the code. Benchmarks on the project README put it roughly 4–17× faster than stdlib logging, depending on the call.
+**[Picologging](https://github.com/microsoft/picologging)** is Microsoft's C-accelerated reimplementation of Python's standard `logging` API. It is 4–17× faster than stdlib `logging` and uses the exact same API (`import picologging as logging`).
 
-It is still **beta**. The README says so plainly. Features are incomplete (see the project's [limitations](https://microsoft.github.io/picologging/limitations.html)), and the latest release (0.9.3) publishes wheels only through CPython 3.12 — there is no 3.13, 3.14, or 3.15 wheel. Treat it as a performance experiment on 3.12 and older, not as a risk-free drop-in on a modern interpreter.
+> [!WARNING]
+> **Read Before Installing Picologging on Modern Python:**
+> Picologging is still in **beta**, and its latest release (`0.9.3`) only publishes pre-built wheels up through **CPython 3.12**—there are no pre-built wheels for Python 3.13, 3.14, or 3.15.
+> Only reach for Picologging if you are maintaining an existing Python ≤3.12 service that already uses stdlib `logging` and profiling proves logging overhead is a bottleneck. For everything else on Python 3.13–3.15, use **Loguru** or **stdlib `logging`**.
 
 ```bash
 uv add picologging
 ```
-
-### Same API as stdlib `logging`
 
 ```python
 import picologging as logging
@@ -305,91 +302,36 @@ import picologging as logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-logger.info("Same API, faster implementation")
-logger.warning("Config issue detected")
-logger.error("Connection failed")
+logger.info("Same API as stdlib logging, backed by C")
 ```
 
-Handlers, formatters, named loggers, and log levels work the way they do in the stdlib. That is the appeal: you do not rewrite the logging layer, you swap the engine.
+---
 
-### Structured Logging
-
-Picologging does not ship a JSON formatter. Roll a small one, or keep using a stdlib-compatible formatter if it works on your version:
-
-```python
-import json
-
-import picologging as logging
-from picologging import StreamHandler
-
-
-class JsonFormatter(logging.Formatter):
-    def format(self, record: logging.LogRecord) -> str:
-        log_entry = {
-            "timestamp": self.formatTime(record),
-            "level": record.levelname,
-            "logger": record.name,
-            "message": record.getMessage(),
-        }
-        if record.exc_info:
-            log_entry["exception"] = self.formatException(record.exc_info)
-        return json.dumps(log_entry)
-
-
-handler = StreamHandler()
-handler.setFormatter(JsonFormatter())
-
-logger = logging.getLogger("myapp")
-logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
-
-logger.info("Request processed")
-```
-
-### When to Use Picologging
-
-Use it only when all of these are true:
-
-- The codebase already uses stdlib `logging` and you do not want to migrate to Loguru
-- You are on CPython 3.12 or older — the latest release (0.9.3) ships wheels no further than `cp312`
-- Logging is on a hot path — a high-throughput service where the stdlib's overhead shows up in profiles
-
-If any of those is a no, pick Loguru or stay on the stdlib. Speed that you cannot install is not speed.
-
-## Comparison
+## Head-to-Head Comparison
 
 | Feature | `logging` (stdlib) | Loguru | Picologging |
 |---|---|---|---|
-| **Setup** | Verbose | Minimal | Same as `logging` |
-| **API** | Standard | New API | Standard (drop-in) |
-| **Colored output** | Manual | Built-in | Manual |
-| **File rotation** | Manual (`RotatingFileHandler`) | Built-in | Manual |
-| **JSON output** | Via formatter (`python-json-logger`, etc.) | `serialize=True` | Via formatter |
-| **Tracebacks** | Basic | Rich + `@logger.catch` | Basic |
-| **Performance** | Baseline | Roughly stdlib | Several times faster, when it runs |
-| **Dependencies** | None | 1 package | 1 package (C extension) |
-| **Maturity** | Standard library | Stable | Beta; wheels only through CPython 3.12 |
-| **Best for** | Zero deps, max compatibility | New projects | Hot-path stdlib code on a supported Python |
+| **Setup boilerplate** | Verbose (handlers/formatters) | **Zero** (`from loguru import logger`) | Same as `logging` |
+| **Colored terminal output** | Manual | **Built-in** | Manual |
+| **File rotation & `.gz`** | Manual (`RotatingFileHandler`) | **1 line (`rotation="10 MB"`)** | Manual |
+| **Structured JSON** | Needs `python-json-logger` | **Built-in (`serialize=True`)** | Custom formatter |
+| **Variable-inspecting tracebacks** | Basic | **Built-in (`logger.exception()`)** | Basic |
+| **Python 3.13–3.15 support** | Built-in | **Full support** | Beta; wheels stop at 3.12 |
+| **Best for** | Zero-dependency libraries | **New applications & scripts** | Legacy 3.12 hot-path services |
 
-### Recommendations
+---
 
-- **New project:** Use **Loguru**. You will write less logging code and get rotation, color, and JSON without a side quest.
-- **Zero extra dependencies:** Use the **stdlib `logging` module**. It is not fashionable. It will still be there in ten years.
-- **Existing stdlib `logging`, hot path, supported Python:** Evaluate **Picologging**. Confirm it installs and behaves on *your* interpreter. As of this writing, that means CPython 3.12 or older; do not assume a newer interpreter is fine.
-- **FastAPI / anything behind a log aggregator:** Emit **structured JSON** (Loguru `serialize=True`, or stdlib plus a JSON formatter) so fields can be indexed instead of grepped.
+## Bonus: Logging Middleware in FastAPI
 
-## Logging in FastAPI
-
-Configure logging once at startup, then bind request fields in middleware:
+Here is how clean structured JSON request logging looks in a FastAPI web app using Loguru:
 
 ```python
 import sys
-
 from fastapi import FastAPI, Request
 from loguru import logger
 
 logger.remove()
-logger.add(sys.stdout, level="INFO", serialize=True)  # JSON for production
+logger.add(sys.stdout, level="INFO", serialize=True)  # Emit JSON to stdout
 
 app = FastAPI()
 
@@ -402,10 +344,12 @@ async def log_requests(request: Request, call_next):
     return response
 ```
 
-`serialize=True` turns keyword arguments into JSON fields. Your future self, debugging a 500 from a log search UI, will be grateful.
+---
 
 ## What's Next?
 
-Logs tell you what the app did. CI/CD is how you make sure the next change did not quietly stop it from doing that. Next: GitHub Actions with uv, Ruff, ty, and pytest.
+You now have isolated environments (`uv`), locked dependencies (`uv.lock`), Git version control, instant linting and formatting (`Ruff`), unit tests (`pytest`), static type checking (`ty`), and structured logging (`Loguru`).
+
+Now let's make sure nobody on your team can ever forget to run those tools before merging a Pull Request: **CI/CD with GitHub Actions**.
 
 [← Previous: Static Type Checking](./08-static-type-checking.md) | [Back to README](./README.md) | [Next: CI/CD →](./10-ci-cd.md)

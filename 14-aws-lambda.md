@@ -4,14 +4,39 @@
 
 ## What is AWS Lambda?
 
-AWS Lambda is a serverless compute service that runs your code in response to events without requiring you to provision or manage servers. You upload a function, configure what triggers it, and AWS handles the rest — scaling, patching, availability, and infrastructure. "Serverless" here means you still have servers. You just do not get to SSH into them, which is the point.
+AWS Lambda is a **serverless, event-driven compute service** that runs your Python functions in response to events without making you provision or baby-sit Linux servers. You write a Python function, tell AWS what triggers it (an HTTP request, a file landing in an S3 bucket, a message arriving on an SQS queue, or an IoT/robotics telemetry batch), and AWS handles scaling, patching, and availability.
+
+*(As the joke goes: "Serverless" doesn't mean there are no servers—it just means the servers are AWS's problem at 3 a.m., not yours.)*
+
+```mermaid
+flowchart LR
+    subgraph Triggers["⚡ Event Sources (Triggers)"]
+        T1["🌐 API Gateway\n(HTTP POST /users)"]
+        T2["📬 SQS Queue\n(Order / Telemetry Batch)"]
+        T3["🪣 S3 Bucket\n(Uploaded File / Log)"]
+        T4["⏰ EventBridge\n(Cron Schedule)"]
+    end
+
+    subgraph Lambda["🐍 AWS Lambda (Python 3.14)"]
+        H["def handler(event, context):\n+ AWS Lambda Powertools\n(Logs, Traces, Metrics, Validation)"]
+    end
+
+    subgraph Downstream["🗄️ Storage & Services"]
+        D1["⚡ DynamoDB Table"]
+        D2["🚨 Dead-Letter Queue (DLQ)"]
+        D3["📊 CloudWatch Logs & X-Ray"]
+    end
+
+    Triggers --> H
+    H --> Downstream
+```
 
 The key characteristics of Lambda:
 
 - **Serverless**: No EC2 instances to provision, patch, or manage. You pay only for compute time consumed — billed in milliseconds.
 - **Event-driven**: Functions are invoked by events from other AWS services or external sources. Lambda does not run continuously; it wakes up, handles an event, and exits.
 - **Automatic scaling**: Lambda scales horizontally and automatically. If 1,000 requests arrive simultaneously, Lambda runs 1,000 concurrent function instances without any configuration from you.
-- **Pay per invocation**: You are charged based on the number of requests and the duration of each execution. Idle time costs nothing, which is the feature people remember until they leave a hot loop in a handler.
+- **Pay per invocation**: You are charged based on the number of requests and the duration of each execution (with a generous free tier of 1 million requests/month). Idle time costs $0.00—which is awesome until you accidentally write an infinite recursion loop!
 
 ### Natural Fit for Event-Driven Workloads
 
@@ -107,11 +132,13 @@ def handler(event: dict, context: LambdaContext) -> dict:
     return {"message": f"Hello, {name}!"}
 ```
 
-### Async Is Not Natively Supported
+### Trap Alert: `async def` Is Not Natively Supported on Lambda!
 
-Unlike Node.js, **Python Lambda handlers cannot be `async def` functions**. Lambda's Python runtime does not run an event loop, so an `async def handler(...)` function will return a coroutine object rather than executing it. The symptoms are confusing. The fix is not.
+> [!WARNING]
+> Unlike Node.js or FastAPI, **Python Lambda handlers cannot be `async def` functions directly!**
+> Lambda's Python runtime calls `handler(event, context)` synchronously. If you write `async def handler(event, context):`, Lambda won't `await` it—it will receive an un-awaited Python `coroutine` object and crash with a confusing serialization error!
 
-If you need to call `async` libraries (e.g., `httpx.AsyncClient`, `aioboto3`), run the event loop manually:
+If you need to call `async` libraries inside Lambda (like `httpx.AsyncClient` or an async LLM SDK), keep `def handler` synchronous and run the event loop explicitly with `asyncio.run()`:
 
 ```python
 import asyncio

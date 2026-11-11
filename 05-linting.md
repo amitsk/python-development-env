@@ -4,79 +4,91 @@
 
 ## What is Linting?
 
-A linter reads your source and flags problems without running the program: unused names, likely bugs, style drift, and the odd construct that *looks* fine until it isn't.
+Because Python is an interpreted language, there is no compiler step that checks your whole file before it runs. If you misspell a variable name inside an `else` branch that only triggers when your robot's battery drops below 5%, Python won't complain when you start the program—it will wait until the battery actually hits 5% during your live demo and then crash with a `NameError`.
 
-The name comes from the old Unix `lint` tool for C. The idea survived. Most of the original C code did not.
+A **linter** fixes that. It reads your source code statically (without running it) and flags bugs, unused imports, dangerous anti-patterns, and style drift in milliseconds.
 
-## Why Bother?
+*(Fun fact: The name comes from the 1978 Unix `lint` utility for C, which picked "lint"—tiny bits of fuzz and traps—out of source code. The name stuck; the 1970s C code mostly didn't.)*
 
-Linters catch a useful class of mistakes while the file is still open: undefined names, unused imports, `type(x) == list` instead of `isinstance`, mutable default arguments, bare `except:`. That is cheaper than finding the same thing in a review, or in production.
+---
 
-They also keep a codebase looking like one person wrote it. Naming, import order, and the "please don't do this" list stop being a matter of taste. Reviews can talk about behavior instead of commas.
+## Why You Want a Linter Watching Your Back
 
-Follow the suggestions for a while and you pick up Python idioms without reading PEP 8 like a novel.
+1. **Catches Real Bugs Instantaneously:** Undefined variables (`F821`), unused imports (`F401`), shadowing built-ins like `id` or `list` (`A001`), mutable default arguments (`B006`), or bare `except:` blocks that swallow `KeyboardInterrupt` so you can't even `Ctrl+C` your script.
+2. **Saves Code Review for the Interesting Stuff:** Nobody wants a Pull Request with 14 comments saying *"please alphabetize your imports"* or *"remove unused `import os`."* Let the linter enforce the baseline automatically.
+3. **Teaches You Idiomatic Python:** When a linter suggests replacing `if type(x) == list:` with `if isinstance(x, list):`, or upgrading an old loop into a modern comprehension, you level up your Python fluency passively as you code.
 
-## Other Linters
+```mermaid
+flowchart LR
+    Code["✍️ You Save sample.py"] --> Ruff["⚡ Ruff Linter (<10ms)"]
+    Ruff --> Bug["🐛 Bug Catch\nUndefined vars, mutable defaults"]
+    Ruff --> Clean["🧹 Auto-Cleanup (--fix)\nUnused imports, import sorting"]
+    Ruff --> Idiom["✨ Modern Python (pyupgrade)\nUpgrades legacy syntax to 3.14+"]
+```
 
-Ruff is the default in this guide. These still exist, and you will meet them in older repos.
+---
 
-**[Flake8](https://github.com/PyCQA/flake8)** wraps Pyflakes, pycodestyle, and McCabe. Mature, plugin-heavy, slower than Ruff. You assemble the rest of the toolchain yourself.
+## The Python Linter Landscape
 
-**[Pylint](https://github.com/pylint-dev/pylint)** is thorough and configurable, sometimes to a fault. It will have an opinion about everything. Useful when you want that; noisy when you don't.
+We use **Ruff** throughout this guide, but you will run into these classic tools in older repos:
 
-Type checkers such as [mypy](https://github.com/python/mypy) and [Pyright](https://github.com/microsoft/pyright) overlap with linting on some issues. They are covered in [Chapter 8](./08-static-type-checking.md).
+- **[Ruff](https://github.com/astral-sh/ruff):** The modern standard. Written in Rust by Astral (the same team behind `uv`), it is 10–100× faster than older linters and bundles 800+ rules from Flake8, isort, pyupgrade, and flake8-bugbear into a single binary.
+- **[Flake8](https://github.com/PyCQA/flake8):** The classic wrapper around Pyflakes, pycodestyle, and McCabe complexity. Battle-tested and everywhere in older repos, but requires installing and configuring separate plugins for import sorting (`isort`), bugbear, etc.
+- **[Pylint](https://github.com/pylint-dev/pylint):** Extremely thorough and opinionated—sometimes to a fault. Great when you want deep static checks; noisy out of the box if you don't tune it.
 
-## Ruff
+*(Note: Static type checkers like [mypy](https://github.com/python/mypy), `ty`, and `Pyrefly` work alongside your linter to verify type annotations—we cover those in [Chapter 8](./08-static-type-checking.md).)*
 
-[Ruff](https://github.com/astral-sh/ruff) is a Python linter *and* formatter, written in Rust. It is the modern default: fast, one binary, hundreds of rules ported from Flake8, isort, pyupgrade, flake8-bugbear, and friends.
+---
 
-It is not new. The current release line is **0.17.x**. Pin that line so CI does not surprise you:
+## Deep Dive into Ruff
+
+**[Ruff](https://github.com/astral-sh/ruff)** is both a linter *and* a code formatter ([Chapter 6](./06-code-formatting.md)). One tool replaces Flake8, isort, Black, pyupgrade, autoflake, and dozens of plugins—and it runs so fast on a typical project that you'll wonder if it actually ran at all.
+
+The current release series is **0.17.x**. Add it to your project's `dev` dependency group:
 
 ```bash
 uv add --dev "ruff>=0.17.0"
 uv run ruff check .
 ```
 
-One-off, no project install:
+Or run it once on any folder without even installing it into the project:
 
 ```bash
 uvx ruff check .
 ```
 
-Ruff is fast enough that a long wait usually means you pointed it at the wrong directory.
+*(See the [uv docs on Ruff integration](https://docs.astral.sh/uv/guides/tools/) and the [official Ruff docs](https://docs.astral.sh/ruff/) for more details.)*
 
-### Why this tool
-
-One process replaces a pile of Flake8 plugins. `--fix` applies the safe edits. The formatter (`ruff format`, next chapter) is Black-compatible, so you are not maintaining two style systems. Rule codes stay familiar if you already know Flake8.
-
-### Basic usage
+### Essential Ruff Commands
 
 ```bash
-# Whole project
+# Lint the entire project
 uv run ruff check .
 
-# One path
+# Lint a specific directory or file
 uv run ruff check src/
 uv run ruff check sample.py
 
-# Apply safe fixes
+# Automatically fix everything that can be safely fixed!
 uv run ruff check --fix .
 
-# Show the fix, then apply it
+# Show a diff of what --fix changed
 uv run ruff check --fix --show-fixes .
 
-# Counts by rule (handy on a messy repo)
+# Count errors by rule code (amazing when cleaning up a messy legacy repo)
 uv run ruff check . --statistics
 
-# Re-run on save
+# Watch mode: re-lints automatically every time you save a file
 uv run ruff check --watch .
 ```
 
-### Configuration
+---
 
-Put settings in `pyproject.toml`, `ruff.toml`, or `.ruff.toml`.
+## Configuring Ruff in `pyproject.toml`
 
-Recent Ruff releases expanded the **default** rule set a lot. A new project can start from those defaults and add rules as you go. An explicit `select` is still a good teaching (and team) config: you can see exactly what is on, and it includes the full pycodestyle `E` set, import sorting, bugbear, comprehensions, and pyupgrade.
+Instead of littering your project root with `.flake8`, `.isort.cfg`, and `setup.cfg`, Ruff reads its settings straight from **`pyproject.toml`**.
+
+Here is the clean, battle-tested configuration we use throughout this guide:
 
 ```toml
 [project]
@@ -98,46 +110,50 @@ exclude = [
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors
+    "E",   # pycodestyle errors (syntax & PEP 8 essentials)
     "W",   # pycodestyle warnings
-    "F",   # Pyflakes
-    "I",   # isort
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "UP",  # pyupgrade
+    "F",   # Pyflakes (unused imports, undefined variables — the real bug catchers)
+    "I",   # isort (automatic alphabetical & grouped import sorting)
+    "B",   # flake8-bugbear ("this is almost certainly a bug" patterns)
+    "C4",  # flake8-comprehensions (cleaner list/dict/set comprehensions)
+    "UP",  # pyupgrade (automatically modernizes old Python syntax to py314)
 ]
 
-# Line length is the formatter's job.
+# Let the formatter (ruff format) handle line lengths instead of nagging on E501
 ignore = [
     "E501",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# If you later enable flake8-bandit (S), keep assert in tests.
+# If you later enable flake8-bandit ("S" security rules), allow plain 'assert' in pytest files:
 "tests/**/*.py" = ["S101"]
 ```
 
-`target-version = "py314"` tells pyupgrade and friends which language features are fair game. Keep it in sync with the Python you actually run.
+### Decoding Ruff's Rule Prefixes
 
-### Rule categories
+When Ruff flags an issue, it prints a code like `F401` or `B006`. Here is what those prefixes mean:
 
-Ruff groups rules by origin:
+| Prefix | Origin Plugin | What It Catches |
+|--------|---------------|-----------------|
+| **`F`** | Pyflakes | Undefined names, unused variables, unused imports |
+| **`E` / `W`** | pycodestyle | PEP 8 errors and warnings (`type(x) == list`, whitespace issues) |
+| **`I`** | isort | Unsorted or ungrouped `import` blocks |
+| **`B`** | flake8-bugbear | Mutable default arguments (`def fn(x=[]):`), loop variable traps |
+| **`C4`** | comprehensions | Unnecessary `list([x for x in y])` wrappers |
+| **`UP`** | pyupgrade | Outdated syntax that has a cleaner Python 3.14+ equivalent |
+| **`N`** | pep8-naming | `camelCase` functions or `snake_case` classes |
+| **`A`** | flake8-builtins | Variables named `list`, `id`, `type`, or `input` that shadow built-ins |
+| **`S`** | flake8-bandit | Security smells (`eval()`, hardcoded passwords, unsafe `subprocess`) |
 
-- **E, W**: pycodestyle
-- **F**: Pyflakes (unused imports, undefined names)
-- **I**: import sorting
-- **N**: pep8-naming
-- **B**: flake8-bugbear (the "this is probably a bug" set)
-- **A**: flake8-builtins (shadowing `list`, `id`, …)
-- **C4**: comprehensions
-- **UP**: pyupgrade (modern syntax)
-- **S**: flake8-bandit (security)
+You can browse all 800+ rules at [Ruff Rules](https://docs.astral.sh/ruff/rules/) (and see default-enabled rules at [Default Rules](https://docs.astral.sh/ruff/default-rules/)).
 
-The catalog lives at [Ruff Rules](https://docs.astral.sh/ruff/rules/). Default-on rules are listed separately under [Default Rules](https://docs.astral.sh/ruff/default-rules/).
+---
 
-### Practical example
+## Hands-On: Watching Ruff Catch (and Fix) Bugs
 
-**1. Start a small project:**
+Let's spin up a tiny project and feed Ruff some intentionally messy code.
+
+### 1. Create a Sample Project
 
 ```bash
 mkdir my_sample_project
@@ -146,7 +162,7 @@ uv init --python 3.14
 uv add --dev "ruff>=0.17.0"
 ```
 
-**2. Add `sample.py` with a few deliberate problems:**
+### 2. Create `sample.py` with Deliberate Issues
 
 ```python
 import os
@@ -176,15 +192,15 @@ if __name__ == "__main__":
     main()
 ```
 
-**3. Lint it with the teaching rule set:**
+### 3. Run Ruff
 
 ```bash
 uv run ruff check --select E,W,F,I,B,C4,UP --output-format=concise sample.py
 ```
 
-Ruff's default output is more verbose (snippets and suggested fixes). Compact form:
+Output:
 
-```
+```text
 sample.py:1:1: I001 [*] Import block is un-sorted or un-formatted
 sample.py:1:8: F401 [*] `os` imported but unused
 sample.py:2:8: F401 [*] `sys` imported but unused
@@ -194,25 +210,61 @@ Found 5 errors.
 [*] 4 fixable with the `--fix` option.
 ```
 
-The missing spaces in `[1,2,3,4,5]` are a **formatter** issue, not a linter one. Ruff leaves those to `ruff format`.
+Notice the `[*]` markers! Ruff is telling you: *"I found 5 issues, and I can fix 4 of them for you automatically right now."*
 
-**4. Auto-fix what it can:**
+### 4. Let Ruff Auto-Fix
 
 ```bash
 uv run ruff check --select E,W,F,I,B,C4,UP --fix sample.py
 ```
 
-Unused imports disappear. `E721` stays: change `type(data) == list` to `isinstance(data, list)` yourself. Then format:
+Ruff deletes the three unused imports automatically. It leaves `E721` (`type(data) == list`) for you to change to `isinstance(data, list)` because changing type checks could subtly alter behavior if subclasses are involved. Once you fix that line and run `uv run ruff format sample.py`, the file is spotless!
 
-```bash
-uv run ruff format sample.py
+---
+
+## Classic Python Bugs Ruff Saves You From
+
+If you're new to Python, **Rule `B006` (Mutable Default Arguments)** alone will save you hours of debugging. Look at this innocent-looking robotics function:
+
+```python
+# ❌ BUG (Flagged by Ruff B006: Do not use mutable data structures for argument defaults)
+def append_waypoint(new_point: tuple[float, float], path: list = []):
+    path.append(new_point)
+    return path
 ```
 
-Without an explicit `select`, the defaults still catch the unused imports and import order. They do **not** include `E721`; that is one reason a written `select` list is easier to teach from.
+**Why is that a bug?** In Python, default list `[]` is created **only once** when the `def` statement is first loaded—*not* each time the function is called! Every time you call `append_waypoint((1.0, 2.0))`, it mutates the *same shared list* from previous calls, so your robot starts re-driving yesterday's waypoints!
 
-### VS Code
+**The fix Ruff teaches you:**
 
-Install the official **Ruff** extension from Astral (`charliermarsh.ruff`). Then in `.vscode/settings.json`:
+```python
+# ✅ FIXED: Use None as the default and create a fresh list inside the function
+def append_waypoint(
+    new_point: tuple[float, float], path: list[tuple[float, float]] | None = None
+) -> list[tuple[float, float]]:
+    if path is None:
+        path = []
+    path.append(new_point)
+    return path
+```
+
+Here are three more everyday catches:
+
+| Issue | What You Wrote (Flagged) | What You Meant (Fixed) |
+|-------|--------------------------|------------------------|
+| **Unused import (`F401`)** | `import os, sys` (never used) | Deleted automatically by `--fix` |
+| **Undefined variable (`F821`)** | `return toatl` (typo!) | `return total` |
+| **Fragile type check (`E721`)** | `if type(data) == list:` | `if isinstance(data, list):` |
+
+---
+
+## Automating Ruff in VS Code and Git
+
+Running `uv run ruff check .` in the terminal is great, but having it run **automatically** every time you hit Save or `git commit` is even better.
+
+### 1. VS Code Setup (`.vscode/settings.json`)
+
+Install the **Ruff** extension (`charliermarsh.ruff`), then drop this into `.vscode/settings.json`:
 
 ```json
 {
@@ -227,17 +279,17 @@ Install the official **Ruff** extension from Astral (`charliermarsh.ruff`). Then
 }
 ```
 
-Save a file and the obvious problems go away before you remember to run the CLI.
+Now every time you press `Ctrl+S` / `Cmd+S`, VS Code automatically removes unused imports, sorts your `import` block, and formats your file!
 
-### Pre-commit
+### 2. Git Pre-Commit Hook (`.pre-commit-config.yaml`)
 
-Run Ruff on every commit so a forgotten `ruff check` never reaches the remote.
+What if a teammate uses Vim or forgets to install the VS Code extension? Add a **pre-commit hook** so Git checks the code before allowing a commit:
 
 ```bash
 uv add --dev pre-commit
 ```
 
-`.pre-commit-config.yaml`:
+Create `.pre-commit-config.yaml`:
 
 ```yaml
 repos:
@@ -249,109 +301,36 @@ repos:
       - id: ruff-format
 ```
 
-`--exit-non-zero-on-fix` fails the commit after applying fixes, so you restage and commit the cleaned files instead of silently committing Ruff's edits.
+Activate the hook in your repo:
 
 ```bash
 uv run pre-commit install
 ```
 
-Pin `rev` to a release tag. Bump it when you bump `ruff` in the project.
+Now if you try to commit messy code, Ruff cleans it up and pauses the commit so you can `git add` the cleaned version.
 
-## Common Issues
-
-### Unused imports
-
-```python
-# Flagged (F401)
-import os
-import sys
-
-print("Hello")
-
-# Fixed: delete them
-print("Hello")
-```
-
-Python will let you import the entire standard library and never touch it. Ruff will not.
-
-### Undefined names
-
-```python
-# Flagged (F821)
-def calculate():
-    return total
-
-# Fixed
-def calculate():
-    total = 0
-    return total
-```
-
-### Mutable default arguments
-
-```python
-# Flagged (B006): this list is shared across calls
-def add_item(item, items=[]):
-    items.append(item)
-    return items
-
-# Fixed
-def add_item(item, items=None):
-    if items is None:
-        items = []
-    items.append(item)
-    return items
-```
-
-This is a real bug, not a style preference. The default is created once, when the function is defined.
-
-### Type comparisons
-
-```python
-# Flagged (E721)
-if type(data) == list:
-    pass
-
-# Fixed
-if isinstance(data, list):
-    pass
-```
-
-`isinstance` respects subclasses. `type(...) ==` does not.
-
-## Habits That Stick
-
-Add linting on day one. Retrofitting a large repo is a weekend you will not enjoy; `ruff check . --statistics` at least tells you how large the weekend is.
-
-Fix in batches: `--fix` first, then the remainder by rule. Put the agreed `select` list in `pyproject.toml`, not in someone's memory. Run the same command in CI that you run locally.
-
-If you disable a rule, leave a comment. "We don't like this" is not a reason; "this false-positives on generated code" is.
-
-Use Ruff for formatting too. That is the next chapter.
+---
 
 ## Quick Reference
 
 ```bash
-# Project install (preferred)
+# Add Ruff to your project
 uv add --dev "ruff>=0.17.0"
-uv run ruff check .
-uv run ruff check --fix .
-uv run ruff check --watch .
-uv run ruff check . --statistics
 
-# No install
+# Daily commands
+uv run ruff check .              # check whole project
+uv run ruff check --fix .        # auto-fix safe issues
+uv run ruff check --watch .      # live watch mode
+uv run ruff check . --statistics # summarize rule counts
+
+# Run without installing in project
 uvx ruff check .
-
-# pyproject.toml sketch
-# [tool.ruff]
-# line-length = 88
-# target-version = "py314"
-# [tool.ruff.lint]
-# select = ["E", "W", "F", "I", "B", "C4", "UP"]
 ```
+
+---
 
 ## What's Next?
 
-Linting catches mistakes and nags you toward a house style. Formatting makes the house style automatic. Next: `ruff format`.
+Linting catches bugs and bad patterns ("Is this code wrong?"). Next up is its twin sibling—**Code Formatting** ("Does this code look consistent?")—using the exact same `ruff` binary you already installed!
 
 [← Previous: Version Control](./04-version-control.md) | [Back to README](./README.md) | [Next: Code Formatting →](./06-code-formatting.md)

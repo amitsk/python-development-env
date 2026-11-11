@@ -4,87 +4,106 @@
 
 ## What is Unit Testing?
 
-A unit test is a small program that checks a small piece of your program, usually a function or method, in isolation. You write it once; it re-runs whenever the code changes.
+How do most beginners test their code? They run the script, type a few numbers into `input()`, eyeball the terminal output, say *"Looks right to me!"*, and push it to GitHub.
+
+That works when your project is 40 lines long. When your project has 20 files—say, a FastAPI backend, an LLM agent pipeline, or a robot obstacle-avoidance controller—manual testing falls apart completely. You fix a bug in one function, accidentally break another function you wrote three weeks ago, and don't notice until demo day.
+
+A **unit test** is simply a small Python function that calls your code with known inputs and asserts that the output matches what you expect:
 
 ```python
-def add(a, b):
+def add(a: int, b: int) -> int:
     return a + b
 
-def test_add():
+
+def test_add() -> None:
     assert add(2, 3) == 5
     assert add(-1, 1) == 0
     assert add(0, 0) == 0
 ```
 
-That is the whole idea. The rest of this chapter is machinery so you can do it hundreds of times without going mad.
+You write the test once, and your computer re-runs hundreds of tests in 0.05 seconds every time you touch the code.
 
-## Why Write Them?
+---
 
-Tests find bugs while the file is still on your machine. They also give you permission to refactor: if the suite is green, the public behavior you cared about still holds.
+## Why Write Unit Tests?
 
-They double as documentation that cannot quietly rot. A README can lie. A test fails CI when it lies.
+1. **Fearless Refactoring:** Want to rewrite a messy algorithm to make it 10× faster? If your test suite is green before and green after, you know you didn't break existing behavior.
+2. **Test Hardware & APIs Without the Hardware:** If you're programming a rover or drone, you can't spin up physical motors in a hallway every time you edit a math function. Unit tests let you verify your PID controller, coordinate transforms, and sensor filters on your laptop in milliseconds.
+3. **Executable Documentation:** Comments go stale and lie. A test that runs on every Pull Request cannot lie without failing the build.
+4. **Regression Armor:** Every time you fix a real bug, write a 5-line test that reproduces it. Now that bug can never sneak back into your codebase again.
 
-Hard-to-test code is often hard-to-use code. If you cannot call a function without standing up a database, the function is doing too much.
-
-When something breaks, a failed test names the function. That beats `print` and hope. After you fix a bug, leave a test for it. The same bug returning later is embarrassing; a regression test is cheap.
+---
 
 ## The Testing Pyramid
 
+Not all tests are created equal. Software teams organize tests into three layers:
+
+```mermaid
+flowchart TB
+    subgraph Pyramid["🏛️ The Testing Pyramid"]
+        direction TB
+        E2E["🐢 End-to-End (E2E) Tests\nFull system / live browser / full robot loop\n(Slow, expensive — write a few key ones)"]
+        Int["⚙️ Integration Tests\nMultiple modules + test database / simulator\n(Medium speed — moderate count)"]
+        Unit["⚡ Unit Tests\nSingle function or class in pure isolation, no network/hardware\n(Milliseconds fast — write LOTS of these!)"]
+        E2E --- Int
+        Int --- Unit
+    end
 ```
-      /\        End-to-end
-     /  \       Whole workflows. Slow. Few.
-    /----\
-   / Integ\
-  /  ration \   Components together. Medium.
- /__________\
-  Unit tests    One function, no network. Fast. Many.
-```
 
-This chapter is the base of the pyramid. Integration and E2E tests matter; they are slower and you want fewer of them.
+This chapter focuses on the base of the pyramid: **fast, isolated unit tests**.
 
-## pytest
+---
 
-[pytest](https://github.com/pytest-dev/pytest) is the Python test runner you actually want. Tests are functions named `test_*`, assertions are plain `assert`, and failure output tells you the values.
+## Meet `pytest`: The Only Test Runner You Need
 
-The 9.x line is current (9.2.0 at the time of writing). Pin the major:
+Python's standard library comes with `unittest` (which forces you to write Java-style classes like `class TestCalc(unittest.TestCase):` and `self.assertEqual(a, b)`). You'll see `unittest` in older codebases, alongside `doctest` (tests inside docstrings).
+
+For almost everything you build today, **[pytest](https://github.com/pytest-dev/pytest)** is the undisputed champion:
+- Tests are plain functions named `test_*`
+- Assertions use Python's regular `assert` keyword (`assert x == y`)
+- When a test fails, `pytest` inspects the expression and prints the exact values of every variable involved!
+
+The current release series is **9.x** (`9.2.0` as of this writing). Add it alongside `pytest-cov` (for measuring code coverage) to your `dev` dependency group:
 
 ```bash
 uv add --dev "pytest>=9.2.0" pytest-cov
 uv run pytest --version
 ```
 
-**Also exists:** `unittest` (stdlib, more ceremony), `nose2` (quiet), `doctest` (examples in docstrings). Fine for small cases. pytest is the default here.
+*(See the [uv guide on pytest](https://docs.astral.sh/uv/guides/First steps/) and the [pytest GitHub repo](https://github.com/pytest-dev/pytest).)*
 
-## First Tests
+---
 
-### 1. Something to test (`calculator.py`)
+## Writing and Running Your First Tests
+
+### 1. Code to Test (`calculator.py`)
 
 ```python
-def add(a, b):
+def add(a: float, b: float) -> float:
     """Add two numbers."""
     return a + b
 
 
-def subtract(a, b):
+def subtract(a: float, b: float) -> float:
     """Subtract b from a."""
     return a - b
 
 
-def multiply(a, b):
+def multiply(a: float, b: float) -> float:
     """Multiply two numbers."""
     return a * b
 
 
-def divide(a, b):
+def divide(a: float, b: float) -> float:
     """Divide a by b."""
     if b == 0:
         raise ValueError("Cannot divide by zero")
     return a / b
 ```
 
-### 2. A test module (`test_calculator.py`)
+### 2. The Test File (`test_calculator.py`)
 
-pytest collects files matching `test_*.py` or `*_test.py`.
+`pytest` automatically discovers any file named `test_*.py` or `*_test.py`, and any function inside named `test_*`:
 
 ```python
 import pytest
@@ -114,21 +133,33 @@ def test_divide():
 
 
 def test_divide_by_zero():
-    with pytest.raises(ValueError):
+    # Verify that dividing by zero raises the exact exception we expect!
+    with pytest.raises(ValueError, match="Cannot divide by zero"):
         divide(10, 0)
 ```
 
-### 3. Run them
+### 3. Run `pytest` with `uv`
 
 ```bash
+# Run every test in the repo
 uv run pytest
+
+# Run one specific file
 uv run pytest test_calculator.py
+
+# Run one specific test function inside that file
 uv run pytest test_calculator.py::test_add
+
+# Verbose output (prints each test function name)
 uv run pytest -v
-uv run pytest -s          # show print()
+
+# Show print() output even on passing tests
+uv run pytest -s
 ```
 
-```
+Output:
+
+```text
 ============================= test session starts ==============================
 collected 5 items
 
@@ -137,11 +168,15 @@ test_calculator.py .....                                                 [100%]
 ============================== 5 passed in 0.02s ===============================
 ```
 
-Five dots. That is the sound of a good morning.
+Five green dots in 20 milliseconds. That is the best feeling in software engineering.
 
-## Layout and config
+---
 
-```
+## Project Layout & Configuration
+
+In a real project, keep your test files in a separate `tests/` directory so you don't accidentally ship test files inside your production package:
+
+```text
 myproject/
 ├── src/
 │   └── mypackage/
@@ -156,7 +191,7 @@ myproject/
 └── README.md
 ```
 
-Keep tests out of the package you ship. `src/` plus `tests/` is the usual split.
+Configure `pytest` right inside your `pyproject.toml`:
 
 ```toml
 [project]
@@ -177,40 +212,41 @@ addopts = [
 ]
 ```
 
-`minversion` is the pytest you expect, not the Python version. 9.x is current; `"8.0"` is acceptable if you still support pytest 8 in CI.
+*(Note: `minversion = "9.0"` refers to the minimum `pytest` version, not the Python version!)*
 
-## Writing Tests That Help
+---
 
-Arrange, act, assert. Setup, call, check. One idea per test. Names that say what happened, not `test_1`.
+## The "Arrange – Act – Assert" Pattern
+
+Good unit tests follow a dead-simple three-beat rhythm called **Arrange, Act, Assert (AAA)**:
+
+```mermaid
+flowchart LR
+    A1["1️⃣ Arrange\nSet up test objects & inputs"] --> A2["2️⃣ Act\nCall the single function being tested"]
+    A2 --> A3["3️⃣ Assert\nVerify the return value or state change"]
+```
 
 ```python
 def test_user_full_name():
-    # Arrange
-    user = User(first_name="John", last_name="Doe")
+    # 1. Arrange — prepare the data
+    user = User(first_name="Ada", last_name="Lovelace")
 
-    # Act
+    # 2. Act — call the method under test
     full_name = user.get_full_name()
 
-    # Assert
-    assert full_name == "John Doe"
+    # 3. Assert — check the result
+    assert full_name == "Ada Lovelace"
 ```
 
-```python
-# One behavior per test
-def test_add_positive_numbers():
-    assert add(2, 3) == 5
+> [!TIP]
+> **One behavior per test!** Instead of writing one giant `test_everything()` function with 30 assertions, write small focused tests (`test_add_positive_numbers()`, `test_add_negative_numbers()`, `test_divide_by_zero_raises()`). When a test named `test_battery_low_cutoff_triggers_landing` fails in CI, you almost know the bug before you even open the file.
 
-def test_add_negative_numbers():
-    assert add(-2, -3) == -5
-```
+---
 
-A 40-line `test_calculator` that checks add, subtract, and multiply tells you "calculator is broken" and nothing else.
+## `pytest` Superpowers You'll Use Every Day
 
-## pytest Features You Will Use
-
-### Fixtures
-
-Reusable setup, injected by argument name:
+### 1. Fixtures (`@pytest.fixture`) — Reusable Test Setup
+Tired of copy-pasting the same 6 lines of setup code at the top of 15 tests? Turn it into a **fixture**. When a test function includes the fixture's name as a parameter, `pytest` automatically calls the fixture and passes you a fresh copy!
 
 ```python
 import pytest
@@ -233,25 +269,19 @@ def test_user_email(sample_user):
     assert sample_user.email == "test@example.com"
 ```
 
-Setup/teardown with `yield`:
+Need to clean up a resource (like closing a temporary file or disconnecting a mock database) after the test finishes? Use **`yield`** instead of `return`:
 
 ```python
 @pytest.fixture
 def database():
     db = Database()
-    db.connect()
-    yield db
-    db.disconnect()
-
-
-def test_database_query(database):
-    result = database.query("SELECT * FROM users")
-    assert len(result) > 0
+    db.connect()       # Runs BEFORE the test
+    yield db           # Hands 'db' to the test function
+    db.disconnect()    # Runs AFTER the test finishes (even if the test failed!)
 ```
 
-### Parametrize
-
-Several inputs, one test body:
+### 2. Parametrization (`@pytest.mark.parametrize`) — 10 Tests for the Price of 1
+Instead of writing five copy-pasted functions to test five different inputs (like normal values, zero, negatives, and boundary thresholds), use `@pytest.mark.parametrize`:
 
 ```python
 @pytest.mark.parametrize(
@@ -267,7 +297,12 @@ def test_add_various_inputs(a, b, expected):
     assert add(a, b) == expected
 ```
 
-### Exceptions
+`pytest` runs that function 4 separate times and reports each tuple as its own test case!
+
+*(Bonus tip for robotics, physics & ML: Never compare floating-point math with raw `==` like `assert 0.1 + 0.2 == 0.3`—binary floating point will give `0.30000000000000004`! Use `assert result == pytest.approx(0.3)` instead.)*
+
+### 3. Testing Exceptions (`pytest.raises`)
+Good code fails loudly when given bad data. Verify that your error checks actually fire:
 
 ```python
 def test_divide_by_zero_raises_error():
@@ -277,20 +312,21 @@ def test_divide_by_zero_raises_error():
 
 
 def test_invalid_age_raises_error():
-    with pytest.raises(ValueError, match="Age must be positive"):
-        User(name="John", age=-5)
+    # Even cleaner: match the error message with a regex!
+    with pytest.raises(ValueError, match="Age must be non-negative"):
+        User(username="john", email="john@example.com", age=-5)
 ```
 
-### Markers
+### 4. Markers (`@pytest.mark`) — Filtering Slow or OS-Specific Tests
+Got a test that runs a heavy MuJoCo physics simulation and takes 8 seconds? Mark it as `slow` so you can skip it during rapid local edits and run it in CI:
 
 ```python
 import sys
-
 import pytest
 
 
 @pytest.mark.slow
-def test_large_dataset_processing():
+def test_quadruped_gait_simulation():
     pass
 
 
@@ -299,27 +335,21 @@ def test_database_connection():
     pass
 
 
-@pytest.mark.skip(reason="Not implemented yet")
-def test_future_feature():
-    pass
-
-
-@pytest.mark.skipif(sys.platform == "win32", reason="Unix only")
-def test_unix_specific_feature():
+@pytest.mark.skipif(sys.platform == "win32", reason="Uses Linux /dev/ttyUSB serial port")
+def test_serial_lidar_port():
     pass
 ```
+
+Run or skip markers from the CLI:
 
 ```bash
-uv run pytest -m slow
-uv run pytest -m "not slow"
-uv run pytest -m integration
+uv run pytest -m "not slow"    # fast local loop!
+uv run pytest -m slow          # run only slow tests
+uv run pytest -m integration   # run integration tests
 ```
 
-Register custom markers under `tool.pytest.ini_options` so `--strict-markers` does not complain.
-
-### Async
-
-Need `pytest-asyncio`. Mark async tests (or set `asyncio_mode = "auto"`):
+### 5. Testing `async` Functions (`pytest-asyncio`)
+Testing `async def` functions (like FastAPI endpoints or async HTTP clients)? Install `pytest-asyncio`:
 
 ```bash
 uv add --dev pytest-asyncio
@@ -330,12 +360,14 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_async_function():
-    result = await async_fetch_data()
-    assert result == expected_value
+async def test_async_fetch():
+    result = await async_fetch_telemetry()
+    assert result["status"] == "ok"
 ```
 
-## Worked Example: a User class
+---
+
+## Complete Worked Example: Testing a `User` Class
 
 **`user.py`:**
 
@@ -350,7 +382,7 @@ class User:
     age: int
     is_active: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.age < 0:
             raise ValueError("Age must be non-negative")
         if "@" not in self.email:
@@ -375,7 +407,7 @@ from user import User
 
 
 @pytest.fixture
-def valid_user():
+def valid_user() -> User:
     return User(
         username="johndoe",
         email="john@example.com",
@@ -383,33 +415,24 @@ def valid_user():
     )
 
 
-@pytest.fixture
-def minor_user():
-    return User(
-        username="jane",
-        email="jane@example.com",
-        age=16,
-    )
-
-
-def test_user_creation(valid_user):
+def test_user_creation(valid_user: User) -> None:
     assert valid_user.username == "johndoe"
     assert valid_user.email == "john@example.com"
     assert valid_user.age == 25
     assert valid_user.is_active is True
 
 
-def test_user_creation_with_invalid_age():
+def test_user_creation_with_invalid_age() -> None:
     with pytest.raises(ValueError, match="Age must be non-negative"):
         User(username="test", email="test@example.com", age=-1)
 
 
-def test_user_creation_with_invalid_email():
+def test_user_creation_with_invalid_email() -> None:
     with pytest.raises(ValueError, match="Invalid email format"):
         User(username="test", email="invalid-email", age=25)
 
 
-def test_greet(valid_user):
+def test_greet(valid_user: User) -> None:
     assert valid_user.greet() == "Hello, johndoe!"
 
 
@@ -423,43 +446,36 @@ def test_greet(valid_user):
         (20, 21, False),
     ],
 )
-def test_can_vote(age, voting_age, can_vote):
+def test_can_vote(age: int, voting_age: int, can_vote: bool) -> None:
     user = User(username="test", email="test@example.com", age=age)
     assert user.can_vote(voting_age) == can_vote
 
 
-def test_deactivate(valid_user):
+def test_deactivate(valid_user: User) -> None:
     assert valid_user.is_active is True
     valid_user.deactivate()
     assert valid_user.is_active is False
-
-
-def test_user_with_zero_age():
-    user = User(username="baby", email="baby@example.com", age=0)
-    assert user.age == 0
-    assert user.can_vote() is False
 ```
+
+Run it:
 
 ```bash
 uv run pytest test_user.py -v
 ```
 
-`minor_user` is unused here; delete it or write a test that needs a 16-year-old. Fixtures you never request are just clutter.
+---
 
-## Coverage
+## Code Coverage (`pytest-cov`)
 
-Coverage answers "did any test execute this line?" It does not answer "did any test check this line." 100% coverage with no assertions is a very expensive green bar.
+**Code coverage** measures which lines of your source code were actually executed during your test run—and more importantly, which lines (`Missing`) were never touched at all!
 
 ```bash
-uv add --dev "pytest>=9.2.0" pytest-cov
-
-uv run pytest --cov=mypackage
 uv run pytest --cov=mypackage --cov-report=term-missing
 uv run pytest --cov=mypackage --cov-report=html
 uv run pytest --cov=mypackage --cov-fail-under=80
 ```
 
-```
+```text
 ---------- coverage: platform linux, python 3.14 -----------
 Name                  Stmts   Miss  Cover   Missing
 ---------------------------------------------------
@@ -468,6 +484,8 @@ mypackage/user.py        25      2    92%   45-46
 ---------------------------------------------------
 TOTAL                    27      2    93%
 ```
+
+Configure coverage in `pyproject.toml`:
 
 ```toml
 [tool.coverage.run]
@@ -487,9 +505,14 @@ exclude_lines = [
 ]
 ```
 
-## Mocking
+> [!NOTE]
+> **Coverage is a flashlight, not a high score.** 85% coverage with thoughtful edge-case assertions is way better than 100% coverage where someone called every function without asserting anything meaningful.
 
-Unit tests should not hit the network. Patch the boundary:
+---
+
+## Mocking External APIs & Hardware (`unittest.mock`)
+
+Unit tests shouldn't make real HTTP calls to Stripe/OpenAI or require a real USB LiDAR sensor to be plugged into your laptop. Use **`patch`** from `unittest.mock` to replace the external boundary with a fake object during the test:
 
 ```python
 from unittest.mock import patch
@@ -498,58 +521,41 @@ from mymodule import fetch_user_data
 
 
 def test_fetch_user_data():
+    # Replace 'api_client.get' with a mock that returns instant fake JSON
     with patch("mymodule.api_client.get") as mock_get:
-        mock_get.return_value = {"name": "John", "age": 30}
+        mock_get.return_value = {"name": "Ada", "age": 30}
 
         user = fetch_user_data(user_id=123)
 
-        assert user["name"] == "John"
+        assert user["name"] == "Ada"
         mock_get.assert_called_once_with("/users/123")
 ```
 
-## Habits That Stick
-
-TDD (failing test, minimal code, refactor) is optional as a religion and useful as a habit when the behavior is clear before the implementation is.
-
-Keep unit tests fast: no real databases, no sleeps, no "this takes 20 seconds" in the default suite. Mark the slow ones and skip them locally with `-m "not slow"`.
-
-Tests should not depend on each other. Shared mutable fixtures are how you get "fails only when run after test_deactivate".
-
-Test the edges: zero, negatives, empty lists, the error path.
-
-```python
-def test_divide_edge_cases():
-    assert divide(0, 5) == 0
-    assert divide(10**100, 10**50) == 10**50
-    assert divide(-10, 2) == -5
-```
-
-Assert something specific. `assert result` is a shrug. `assert result == expected` is a test.
-
-Do not assert on `_private` attributes. Call the public API; if you cannot, the API is incomplete.
+---
 
 ## Quick Reference
 
 ```bash
+# Install pytest and coverage plugin
 uv add --dev "pytest>=9.2.0" pytest-cov
 
-uv run pytest
-uv run pytest tests/test_file.py
-uv run pytest tests/test_file.py::test_name
-uv run pytest -k "test_add"
-uv run pytest -v
-uv run pytest -s
-uv run pytest -x              # first failure
-uv run pytest --lf            # last failed
-uv run pytest --ff            # failed first
-uv run pytest --cov=src
-uv run pytest --cov=src --cov-report=html
-uv run pytest -m slow
-uv run pytest -m "not slow"
+# Everyday runs
+uv run pytest                                  # run all tests
+uv run pytest tests/test_file.py               # run one file
+uv run pytest tests/test_file.py::test_name    # run one test function
+uv run pytest -k "vote"                        # run tests matching keyword 'vote'
+uv run pytest -x                               # stop immediately on first failure
+uv run pytest --lf                             # re-run only the tests that failed last time!
+
+# Coverage
+uv run pytest --cov=src --cov-report=term-missing
+uv run pytest --cov=src --cov-report=html      # opens htmlcov/index.html
 ```
+
+---
 
 ## What's Next?
 
-Tests tell you the code behaves. Static types tell you the code even *type-checks* before it runs. Next: type hints, ty, mypy, and friends.
+Your unit tests prove that your functions return the right values for the inputs you tested. Next, let's catch an entire category of bugs *without even writing a test*: **Static Type Checking** with type hints, `ty`, `mypy`, and `Pyrefly`.
 
 [← Previous: Code Formatting](./06-code-formatting.md) | [Back to README](./README.md) | [Next: Static Type Checking →](./08-static-type-checking.md)

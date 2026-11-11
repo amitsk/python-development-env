@@ -1,14 +1,15 @@
 
 * Generate a tutorial on setting up a Python development environment using 
-the details in this file. The audience for the tutorial are students or folks learning programming with some experience in writing code. Create this as a Github project with a README that has a table of contents and individual chapters . Create navigation links in each document.
+the details in this file. The audience for the tutorial are CS students, new developers, or folks learning programming with some experience in writing code. Keep the tone lively, casual, and fun rather than textbooky. Include Mermaid diagrams, custom visual illustrations in `assets/`, and relatable examples across web, AI, and robotics/physical computing. Create this as a Github project with a README that has a table of contents and individual chapters. Create navigation links in each document.
 * Tutorial on setting up a Python Development environment
 ** Topics 
 *** Introduction
     **** Background. Not a Python tutorial. Provide a link to popular python tutorials including the one from Python.org
-    **** Explain basic software engineering best practices like Version control, Linting, Code formatting, Unit Testing, CI/CD
-    **** Set the contex about uv. Mention that uv will be used. Links to uv and uv installation for Mac+Windows+Linux
+    **** Showcase where Python powers the real world: Robotics (ROS 2 / rclpy, MuJoCo / Isaac Lab simulation, OpenCV, MicroPython / CircuitPython), AI/LLMs (training + how LLMs use Python as their own scripting language), Web APIs, and CLI tools.
+    **** Explain basic software engineering best practices like Version control, Linting, Code formatting, Unit Testing, CI/CD with Mermaid diagrams.
+    **** Set the context about uv. Mention that uv will be used. Links to uv and uv installation for Mac+Windows+Linux
     **** Explain how VSCode will be used. Point to VSCode github link https://github.com/microsoft/vscode.
-    **** Add a note that the tools mentioned are some of the popular modern choices and that there are many other excellent tools available (Poetry, PDM, Flake8, Pylint, Black, Pyright, Flask, Django, Litestar, etc.) - the ones covered provide a solid foundation but users should pick what works best for their project.
+    **** Add a note that the tools mentioned are some of the popular modern choices and that there are many other excellent tools available (Poetry, PDM, Conda/Pixi, Flake8, Pylint, Black, Pyright, Flask, Django, Litestar, etc.) - the ones covered provide a solid foundation but users should pick what works best for their project.
 *** Python Virtual environments
     **** Explain what are Virtual envs. Benefits of virtual environments. 
     **** Explain how to create venv in Python3 
@@ -68,6 +69,7 @@ the details in this file. The audience for the tutorial are students or folks le
 
 *** LLMs
     **** Explain what is LLMs. Benefits of LLMs and using these in python projects
+    **** Explain how LLMs use Python as their own scripting language for complex tasks (Code Interpreter sandboxes, deterministic math/data analysis, programmatic tool use, and "Code as Policies" in robotics)
     **** GitHub Copilot - https://github.com/features/copilot - IDE completions, chat, agent mode
     **** Cursor - https://cursor.com - AI-first editor based on VS Code
     **** Claude Code - https://github.com/anthropics/claude-code - Anthropic terminal coding agent. Native install: curl -fsSL https://claude.ai/install.sh | bash

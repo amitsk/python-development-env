@@ -4,14 +4,35 @@
 
 ## What is FastAPI?
 
-[FastAPI](https://fastapi.tiangolo.com) ([GitHub](https://github.com/fastapi/fastapi)) is a modern Python web framework for building REST APIs. It was created by Sebastián Ramírez and first released in 2018, and has since become the default answer to "what should I use for a new Python API?" — which is either a compliment or a warning, depending on how you feel about defaults.
+[FastAPI](https://fastapi.tiangolo.com) ([GitHub](https://github.com/fastapi/fastapi)) is the modern go-to Python web framework for building REST APIs—whether you're building a startup backend, serving predictions from an ML model, or exposing an HTTP control server on a robot so a dashboard can send waypoints. Created by Sebastián Ramírez in 2018, it quickly became the default answer to *"What should I use for a new Python API?"*
 
-FastAPI is built on two foundational libraries:
+FastAPI stands on the shoulders of two powerhouse libraries:
 
-- **[Starlette](https://www.starlette.io/)**: An ASGI (Asynchronous Server Gateway Interface) toolkit that provides the underlying web primitives — routing, requests, responses, middleware, and WebSocket support.
-- **[Pydantic](https://docs.pydantic.dev/)**: A data validation library that uses Python type hints to define data schemas and automatically validates incoming data.
+- **[Starlette](https://www.starlette.io/):** A lightweight, ultra-fast ASGI (Asynchronous Server Gateway Interface) web toolkit that handles routing, HTTP requests/responses, middleware, and WebSockets.
+- **[Pydantic](https://docs.pydantic.dev/):** A Rust-accelerated data validation library that uses standard Python type hints to validate, parse, and serialize JSON automatically.
 
-The combination is powerful: Starlette gives you async-native, high-performance HTTP handling, and Pydantic gives you type-safe, automatic validation with zero extra schema language. You write Python. The framework does the rest, including the part where it refuses a string in an `int` field with a 422 instead of a stack trace.
+Here is how a single HTTP request flows through FastAPI:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as 🌐 Client / Browser / Robot UI
+    participant FastAPI as ⚡ FastAPI + Pydantic
+    participant Dep as 🔌 Depends(get_session)
+    participant Route as 🐍 Your Route Function
+    participant DB as 🗄️ SQLModel / Database
+
+    Client->>FastAPI: POST /heroes {"name": "Spider-Boy", "age": "seventeen"}
+    Note over FastAPI: Pydantic checks types!<br/>"seventeen" is not an int -> instant 422 Error!
+    Client->>FastAPI: POST /heroes {"name": "Spider-Boy", "age": 17}
+    FastAPI->>Dep: Opens DB session for this request
+    Dep->>Route: Injects validated HeroCreate + Session
+    Route->>DB: Saves row & commits
+    Route-->>FastAPI: Returns Hero ORM object
+    FastAPI-->>Client: Filters via HeroRead -> 201 Created JSON!
+```
+
+The magic is that **your function never has to write `if not isinstance(data.get("age"), int): return 400`.** If someone sends a string in an `int` field, Pydantic stops them at the door with a clean `422 Unprocessable Entity` JSON response explaining exactly which field was wrong—before your function even runs!
 
 ### Why FastAPI?
 

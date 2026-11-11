@@ -4,47 +4,65 @@
 
 ## What is Static Type Checking?
 
-Python checks types at runtime. That is flexible. It is also how `greet(123)` becomes an error only after someone actually calls it.
-
-A static type checker reads annotations and traces types through the program *without running it*.
+Python is **dynamically typed**, which means the Python interpreter doesn't check the types of your variables until the exact millisecond that line of code executes at runtime:
 
 ```python
 def greet(name):
     return "Hello, " + name
 
-greet("Alice")  # fine
-greet(123)      # TypeError, but only when this line runs
+
+greet("Alice")  # Works fine!
+greet(123)      # 💥 TypeError: can only concatenate str (not "int") to str
+                # ...but you only find out when this line actually runs!
 ```
+
+Now add **type hints** (`name: str` and `-> str`):
 
 ```python
 def greet(name: str) -> str:
     return "Hello, " + name
 
-greet("Alice")  # fine
-greet(123)      # the type checker flags this now
+
+greet("Alice")  # ✅ Type checker is happy
+greet(123)      # 🚨 Type checker flags this IMMEDIATELY in your editor & CI!
 ```
 
-The interpreter still will not care. The checker will. That gap is the whole feature.
+Here is the plot twist that surprises new Python developers: **the Python interpreter itself completely ignores type hints at runtime!** Adding `name: str` does not slow down your code or make Python enforce types when `python main.py` runs.
 
-## Why Annotate?
+Instead, a **static type checker** (`ty`, `mypy`, `Pyright`, or `Pyrefly`) reads those annotations before your code ever runs, traces every variable across your entire codebase, and catches type mismatches before they can blow up in production:
 
-Wrong types show up in the editor and in CI instead of in a stack trace from last Tuesday. Hints also document the function in a way the tooling can verify, so they stay honest.
+```mermaid
+flowchart LR
+    Code["🐍 Your Python Code\ndef set_velocity(v: float) -> None:"] --> Checker["🏷️ Static Type Checker\n(ty / mypy / Pyrefly)\nChecks types BEFORE running!"]
+    Code --> Interp["⚡ Python Interpreter\n(uv run python main.py)\nExecutes code at full speed"]
+    Checker --> Catch["🚨 Flags set_velocity('fast')\nright in VS Code & CI"]
+```
 
-Editors use them for completion and rename. Change a signature and the checker lists the call sites you forgot. You do not have to annotate a whole legacy tree on day one: start at the edges and work inward.
+---
 
-Tests still matter. Types will not catch `return a - b` in a function named `add`. They catch a different class of mistake. Use both.
+## Why Type Hints Are a Game-Changer
 
-## Type Hints, the Normal Syntax
+1. **Goodbye `AttributeError: 'NoneType' object has no attribute ...`:** The #1 runtime crash in Python happens when a function returns `None` on an edge case and the caller forgets to check for `None`. Type checkers spot `User | None` and force you to handle the `None` case first!
+2. **Magical Editor Autocomplete:** If you write `def process(sensor):`, VS Code has no idea what `sensor.` can do. Write `def process(sensor: LidarSensor):`, and the moment you type `sensor.`, VS Code pops up every method and property with full documentation.
+3. **Self-Verifying Documentation:** You don't have to guess whether `timestamp` is a `float` (Unix seconds), an `int` (milliseconds), an ISO `str`, or a `datetime` object—the signature tells you, and the type checker proves it's still true.
+4. **Supercharges FastAPI, Typer, SQLModel & AI Agents:** As you'll see in Chapters 11–15, modern Python libraries actually inspect your type hints to auto-generate API validation, database schemas, CLI `--help` menus, and LLM tool schemas!
 
-Python 3.9+ built-ins are generic. Python 3.10+ unions use `|`. This tutorial targets 3.14, so this is the syntax. You do not need `from typing import List, Dict, Optional` for ordinary collections.
+---
 
-### Scalars and functions
+## Modern Type Hint Syntax (Python 3.10–3.15)
+
+> [!TIP]
+> **Don't copy old 2019 type hints!**
+> In older Python (`3.8` and earlier), you had to write `from typing import List, Dict, Tuple, Optional, Union`.
+> Since Python 3.9 and 3.10 (and we target **3.14+**), you use built-in types directly (`list[int]`, `dict[str, float]`) and the clean pipe operator (`str | None`)!
+
+### 1. Variables & Functions
 
 ```python
 name: str = "Alice"
 age: int = 30
-height: float = 5.8
-is_active: bool = True
+max_torque_nm: float = 12.5
+is_armed: bool = False
 
 
 def add(a: int, b: int) -> int:
@@ -55,136 +73,124 @@ def greet(name: str) -> str:
     return f"Hello, {name}"
 
 
+# Functions that don't return a value use -> None
 def log_message(message: str) -> None:
     print(message)
 ```
 
-### Collections and optionals
+### 2. Collections & Optional Values (`| None`)
 
 ```python
-numbers: list[int] = [1, 2, 3, 4]
-names: list[str] = ["Alice", "Bob"]
+# Lists and Sets
+readings: list[float] = [1.2, 3.4, 5.6]
+tags: set[str] = {"robotics", "lidar"}
 
-scores: dict[str, int] = {"age": 30, "score": 100}
-config: dict[str, str] = {"host": "localhost", "port": "5432"}
+# Dictionaries: dict[KeyType, ValueType]
+scores: dict[str, int] = {"alice": 100, "bob": 95}
 
-tags: set[str] = {"python", "typing"}
-
-point: tuple[int, int] = (10, 20)
+# Tuples: fixed-size vs variable-length
+point_3d: tuple[float, float, float] = (0.5, -1.2, 0.8)
 person: tuple[str, int, bool] = ("Alice", 30, True)
 
-# None is a union, not a special import
-name: str | None = None
+# Optional values: use `| None` (no import needed!)
+active_target: str | None = None
 ```
 
-### Unions, Any, Callable
+### 3. Unions, `Callable`, `TypedDict`, and `Any`
 
 ```python
 from collections.abc import Callable
 from typing import Any, TypedDict
 
 
-def process(value: int | str) -> str:
-    return str(value)
+# Union: accepts either int OR str
+def format_id(raw_id: int | str) -> str:
+    return f"ID-{raw_id}"
 
 
-def flexible(data: Any) -> Any:
-    return data
-
-
-def apply_function(func: Callable[[int, int], int], a: int, b: int) -> int:
+# Callable[[Arg1Type, Arg2Type], ReturnType] — great for callbacks!
+def apply_op(func: Callable[[int, int], int], a: int, b: int) -> int:
     return func(a, b)
 
 
-class UserRecord(TypedDict):
-    name: str
-    age: int
+# TypedDict — when you have a structured JSON dictionary with known keys
+class TelemetryPacket(TypedDict):
+    battery_v: float
+    armed: bool
+    mode: str
+
+
+# Any — the escape hatch (disables type checking for that value; use sparingly!)
+def parse_legacy_payload(data: Any) -> dict[str, Any]:
+    return dict(data)
 ```
 
-`Any` is the escape hatch. Use it at untyped boundaries, not as the type of everything you could not be bothered to name.
+### 4. Dataclasses & Custom Classes
 
-`Callable` and `TypedDict` still live in `typing` / `collections.abc`. That is expected.
-
-### Classes
+Your own classes automatically work as types!
 
 ```python
 from dataclasses import dataclass
 
 
 @dataclass
-class User:
-    name: str
-    age: int
-    email: str
+class Waypoint:
+    x: float
+    y: float
+    label: str = "wp"
 
 
-def create_user(name: str, age: int, email: str) -> User:
-    return User(name, age, email)
-
-
-def process_users(users: list[User]) -> dict[str, User]:
-    return {user.email: user for user in users}
+def compute_path_length(path: list[Waypoint]) -> float:
+    # Type checker knows item.x and item.y are floats!
+    return sum((wp.x**2 + wp.y**2) ** 0.5 for wp in path)
 ```
 
-### Type aliases
-
-Python 3.12+ has a dedicated statement:
+### 5. Modern Type Aliases (`type` statement in Python 3.12+)
 
 ```python
 type UserId = int
-type UserData = dict[str, str | int | bool]
+type PoseMatrix = list[list[float]]
 
 
-def get_user_data(user_id: UserId) -> UserData:
+def get_user_pose(user_id: UserId) -> PoseMatrix:
     ...
 ```
 
-Older style, still valid:
+*(In older pre-3.12 code, you'll see `UserId: TypeAlias = int`.)*
 
-```python
-from typing import TypeAlias
+---
 
-UserId: TypeAlias = int
-```
+## Meet the Type Checkers
 
-Prefer `type UserId = int` in new 3.12+ code.
+| Tool | Built By | Written In | The Vibe |
+|------|----------|------------|----------|
+| **[ty](https://github.com/astral-sh/ty)** | Astral (`uv` / `Ruff` team) | Rust | **Tutorial default.** Blazing fast, great diagnostics, built-in LSP. Currently **beta** (`0.0.100`). |
+| **[mypy](https://github.com/python/mypy)** | Python / Dropbox | Python | The battle-tested pioneer. Slower on huge repos, rock-solid stability. |
+| **[Pyright](https://github.com/microsoft/pyright)** / Pylance | Microsoft | TypeScript | Powers VS Code's in-editor type checking via Pylance. |
+| **[Pyrefly](https://pyrefly.org/)** | Meta | Rust | Fast, next-gen Rust checker designed for massive codebases. |
 
-## The Checkers
+---
 
-| Tool | Who | Language | Role here |
-|------|-----|----------|-----------|
-| **[ty](https://github.com/astral-sh/ty)** | Astral | Rust | Tutorial default. Fast. **Beta** (0.0.100). |
-| **[mypy](https://github.com/python/mypy)** | python/mypy | Python | Mature CLI checker. Safe default if you want stable diagnostics. |
-| **[Pyright](https://github.com/microsoft/pyright)** / Pylance | Microsoft | TypeScript | Editor type checking in VS Code. |
-| **[Pyrefly](https://pyrefly.org/)** | Meta | Rust | Fast alternative, strong on large repos. |
+## 1. `ty` (Our Tutorial Default)
 
-For this stack (uv, Ruff, VS Code), use **ty or mypy on the CLI**. This chapter uses ty. Pin the ty version in CI: it is beta, and diagnostics can change between releases.
+**[ty](https://docs.astral.sh/ty/)** comes from Astral (the creators of `uv` and `Ruff`). Written in Rust, it checks projects in a fraction of a second and prints Rust-compiler-style error messages that actually show you *where* a type came from.
 
-Pyright still powers Pylance. You can run ty in CI and keep Pylance in the editor, or switch the editor to ty's language server. Do not run three checkers against the same file and expect identical output.
+> [!NOTE]
+> **`ty` is currently in Beta (`0.0.100`).** It is already super practical for daily work, but because its rule set is still evolving, **pin its version in `pyproject.toml` / `uv.lock`** so a minor update doesn't surprise your CI pipeline on a Tuesday morning. (Try it in your browser at [play.ty.dev](https://play.ty.dev)!)
 
-## ty (tutorial default)
-
-[ty](https://docs.astral.sh/ty/) is Astral's type checker: same shop as uv and Ruff, written in Rust, built-in language server. It is **beta** as of 0.0.100. Fast, good on partially typed code, not a frozen specification yet.
-
-Say that out loud to your team before you make it a merge gate. Then pin it.
-
-Docs: [docs.astral.sh/ty](https://docs.astral.sh/ty/). Playground (no install): [play.ty.dev](https://play.ty.dev).
-
-### Install and run
+### Install and Run `ty`
 
 ```bash
+# Add to your project's dev group
 uv add --dev ty
 uv run ty check
 uv run ty check src/
 
-# No project install
+# Or run once without installing
 uvx ty check
-uvx ty check src/
 ```
 
-Pin in `pyproject.toml` (or your lockfile) so CI and laptops match. When you upgrade ty, read the changelog and expect some new (or quieter) diagnostics.
-
-### Configuration
+### Configure `ty` in `pyproject.toml`
 
 ```toml
 [project]
@@ -195,17 +201,13 @@ python-version = "3.14"
 
 [tool.ty.src]
 include = ["src", "tests"]
-
-# Optional: tune one rule at a time
-# [tool.ty.rules]
-# possibly-unresolved-reference = "warn"
 ```
 
-Full keys: [ty configuration](https://docs.astral.sh/ty/reference/configuration/).
+*(Full configuration reference: [docs.astral.sh/ty/reference/configuration](https://docs.astral.sh/ty/reference/configuration/).)*
 
-### Example
+### Watching `ty` Catch a Bug
 
-**`calculator.py`:**
+Create `calculator.py`:
 
 ```python
 def add(a: int, b: int) -> int:
@@ -219,11 +221,9 @@ def greet(name: str) -> str:
 result = add("1", "2")
 ```
 
-```bash
-uvx ty check calculator.py
-```
+Run `uvx ty check calculator.py`:
 
-```
+```text
 error[invalid-argument-type]: Argument to function `add` is incorrect
  --> calculator.py:8:14
   |
@@ -249,32 +249,21 @@ info: Function defined here
 Found 2 diagnostics
 ```
 
-Two arguments, two errors. Concatenating `"1"` and `"2"` would have been a perfectly typed way to get the wrong answer; the checker is not a substitute for `test_add`.
+Look how clean that is! Without type checking, `add("1", "2")` in Python silently concatenates the strings into `"12"` instead of `3`—a classic bug when reading unparsed strings from environment variables or query parameters!
 
-### Editor
+---
 
-ty ships a language server. In VS Code, install the official **ty** extension from Astral (`astral-sh.ty`). It can sit alongside Pylance or replace it; if a ty feature is still missing, keep Pylance for that part and let CI be the source of truth.
+## 2. `mypy` (The Classic Industry Standard)
 
-Neovim and other LSP clients can run `ty server`. See [the editor docs](https://docs.astral.sh/ty/).
-
-### When to use ty
-
-Good fit: new projects on uv/Ruff, large trees where mypy is slow, editors that want a fast language server.
-
-Caveats: beta. Pin the version. Do not assume a diagnostic that exists today will have the same code next month. Advanced mypy plugins are not a ty feature.
-
-If you need a checker whose behavior has been boring for a decade, that is mypy.
-
-## mypy
-
-[mypy](https://github.com/python/mypy) is the original Python type checker. Mature, well documented, still the thing many CI pipelines run.
+**[mypy](https://github.com/python/mypy)** is the original static type checker for Python (guided early on by Guido van Rossum himself). If you join an established Python team or open-source library, there is a high chance their CI runs `mypy`.
 
 ```bash
 uv add --dev mypy
 uv run mypy src/
 uv run mypy --strict src/
-uv run mypy --show-error-codes src/
 ```
+
+Configure `mypy` in `pyproject.toml`:
 
 ```toml
 [tool.mypy]
@@ -290,19 +279,46 @@ module = "tests.*"
 disallow_untyped_defs = false
 ```
 
-Typical first errors: missing annotations (`def process(data):`) and `return "25"` from a function declared `-> int`. Add the hint, or fix the return. `--strict` is reasonable on new packages and loud on old ones; turn flags on one at a time if you are migrating.
+---
 
-mypy is slower than ty on big repos. It is also less likely to change its mind next week. Either is a valid CLI choice; pick one as the merge gate.
+## 3. `Pyrefly` (Meta's Fast Rust Checker)
 
-## Pyright and Pylance
-
-[Pyright](https://github.com/microsoft/pyright) is Microsoft's checker. [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance) is the VS Code extension that uses it.
+**[Pyrefly](https://pyrefly.org/)** is Meta's next-generation Rust type checker and language server.
 
 ```bash
-uvx pyright
+uv add --dev pyrefly
+uv run pyrefly check src/
+
+# Or try it without installing:
+uvx pyrefly check
 ```
 
-Pylance settings, if you keep it as the in-editor checker:
+> [!IMPORTANT]
+> **Initialize `Pyrefly` first!**
+> With zero configuration, Pyrefly defaults to a super-conservative `basic` preset that skips many argument-type checks (so it won't flag `add("1", "2")` out of the box). Run `uvx pyrefly init` or add `[tool.pyrefly]` to your `pyproject.toml` to enable full checking:
+
+```toml
+[tool.pyrefly]
+python-version = "3.14"
+```
+
+Once configured, `uvx pyrefly check calculator.py` catches the bug immediately:
+
+```text
+ERROR Argument `Literal['1']` is not assignable to parameter `a` with type `int` in function `add` [bad-argument-type]
+ --> calculator.py:8:14
+  |
+8 | result = add("1", "2")
+  |              ^^^
+```
+
+---
+
+## 4. `Pyright` & VS Code Pylance
+
+When you install the Python extension in VS Code, Microsoft's **Pylance** extension (powered by **[Pyright](https://github.com/microsoft/pyright)**) runs in the background. By default, Pylance leaves strict type checking turned off so it doesn't overwhelm beginners with red squiggles.
+
+Want VS Code to underline type errors live while you type? Add this to `.vscode/settings.json`:
 
 ```json
 {
@@ -311,119 +327,68 @@ Pylance settings, if you keep it as the in-editor checker:
 }
 ```
 
-`"strict"` is available when you want it. PyCharm has its own inspections under Settings → Editor → Inspections → Python → Type checker.
+---
 
-## Pyrefly
+## Remember: Types and Tests Are Partners, Not Replacements!
 
-[Pyrefly](https://pyrefly.org/) is Meta's Rust type checker (the successor in spirit to Pyre). Fast incremental checking, LSP, playground on the site.
-
-```bash
-uvx pyrefly check
-uv add --dev pyrefly
-uv run pyrefly check src/
-```
-
-With **no config**, Pyrefly uses a conservative `basic` preset: high-confidence issues only. That preset will *not* report `add("1", "2")`. Run `uvx pyrefly init` (or add a `[tool.pyrefly]` table) before you treat it as a real checker.
-
-```toml
-[tool.pyrefly]
-python-version = "3.14"
-```
-
-After init, the same `calculator.py` looks like this:
-
-```
-ERROR Argument `Literal['1']` is not assignable to parameter `a` with type `int` in function `add` [bad-argument-type]
- --> calculator.py:8:14
-  |
-8 | result = add("1", "2")
-  |              ^^^
-```
-
-Useful as a second opinion, or if you already live in Meta's Python world. For this tutorial's CLI, prefer ty or mypy so the rest of the uv/Ruff setup stays one-vendor-simple.
-
-## Gradual Typing
-
-You do not owe the type checker a complete novel.
-
-1. **Public functions first.** `create_user(name: str, email: str) -> User` pays rent immediately. `_validate_internal` can wait.
-2. **All new code.** Stop adding untyped surfaces.
-3. **The scary modules.** The ones that keep producing bugs get annotations next.
-4. **The rest**, when you have a slow afternoon.
-
-Empty containers need a hint (`items: list[int] = []`). `name = "Alice"` does not. The checker can see that one.
-
-## Stubs
-
-Third-party code without hints can get a `.pyi` file next to it, or in a stubs package:
+Why do we need *both* `pytest` (Chapter 7) and `ty` (Chapter 8)? Look at these two broken functions:
 
 ```python
-# mylib.pyi
-def process(data: str) -> int: ...
+# Bug #1: Caught by the TYPE CHECKER (ty), might be missed by a lazy test
+def get_ speed_limit(zone: str) -> int:
+    if zone == "school":
+        return 25
+    # Oops! Forgot an 'else' return — Python implicitly returns None!
+    # ty immediately flags: "Function declared -> int can return None!"
 
-class Handler:
-    def handle(self, value: int) -> None: ...
-```
 
-Many popular libraries already ship types or have stubs on Typeshed. Check before you write your own.
-
-Suppressions exist for a reason. Use them with a code, and sparingly:
-
-```python
-result = some_untyped_library_function()  # type: ignore[misc]
-```
-
-A stub is better than a blanket ignore. A typed wrapper around the untyped library is better still.
-
-## Types Are Not Tests
-
-```python
+# Bug #2: Caught by UNIT TESTS (pytest), invisible to the type checker
 def add(a: int, b: int) -> int:
-    return str(a + b)  # checker: returning str, declared int
-
-
-def add(a: int, b: int) -> int:
-    return a - b  # checker: types are fine. tests: not fine.
+    return a - b  # Types are 100% valid (int in, int out), math is 100% wrong!
 ```
 
-The first function is a type error. The second is a logic error with perfect types. Run `uv run pytest` *and* `uv run ty check`.
+- **Type checkers** verify the *shapes and contracts* of every code path (even `if/else` branches your tests forgot to hit).
+- **Unit tests** verify that the *business logic and math* actually produce the right values.
+
+Run both!
+
+---
+
+## Quick Tips for Gradual Typing
+
+- **Start with function signatures:** Annotating `def filter_points(pts: list[float]) -> list[float]:` gives you 90% of the benefit. You rarely need to annotate local variables inside the function (`x = 5` is obviously an `int`—the checker infers it automatically).
+- **Do annotate empty collections:** If you write `items = []`, the checker doesn't know what will go inside it later. Write `items: list[str] = []`.
+- **Third-party libraries without types:** Most modern packages include built-in type hints. Older ones (like `boto3`) have companion stub packages (`types-boto3`, `types-requests`). In the rare case an untyped C extension confuses the checker, use a targeted `# type: ignore[code]` comment on that specific line.
+
+---
 
 ## Quick Reference
 
 ```bash
-# ty (default here; beta — pin it)
+# ty (Tutorial default — fast Rust checker from Astral)
 uv add --dev ty
 uv run ty check
 uv run ty check src/
 uvx ty check
 
-# mypy (stable alternative)
+# mypy (Classic standard)
 uv add --dev mypy
 uv run mypy src/
 uv run mypy --strict src/
 
-# Pyrefly (init first, or it stays on the basic preset)
+# Pyrefly (Meta's Rust checker — run init first!)
 uvx pyrefly init
 uvx pyrefly check
 
-# [tool.ty.environment]
-# python-version = "3.14"
-# [tool.ty.src]
-# include = ["src", "tests"]
-
-# [tool.mypy]
-# python_version = "3.14"
-# strict = true
-
-# Everyday hints
-def func(a: int, b: str) -> bool: ...
-numbers: list[int] = []
-maybe: str | None = None
-type UserId = int
+# Modern Python 3.14+ Type Hint Cheat Sheet
+def process(items: list[int], label: str | None = None) -> dict[str, float]: ...
+type SensorId = str
 ```
+
+---
 
 ## What's Next?
 
-Types make the shape of the program explicit. Logging makes its *behavior* visible once it is running. Next chapter: stop relying on `print()`.
+Your code is linted, formatted, tested, and type-checked. Now what happens when your program is running on a cloud server or an autonomous rover and something goes weird at 3 a.m.? It's time to graduate from `print("HERE!!!")` to real **Logging**.
 
 [← Previous: Unit Testing](./07-unit-testing.md) | [Back to README](./README.md) | [Next: Logging →](./09-logging.md)

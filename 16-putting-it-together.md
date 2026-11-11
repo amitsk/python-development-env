@@ -2,23 +2,41 @@
 
 [← Previous: CLI Libraries](./15-cli-libraries.md) | [Back to README](./README.md)
 
-## Overview
+## Overview: The Grand Finale
 
-You've learned the core tools for professional Python development:
+You have made it to the capstone! Across this guide, you've assembled the complete modern Python engineering toolkit:
 
-- Virtual environments and **uv** projects
-- Dependencies and lockfiles
-- Version control
-- Linting and formatting (Ruff)
-- Unit testing (pytest)
-- Static type checking
-- Logging
-- CI/CD
-- Optional: AI tools, databases, FastAPI, Lambda, CLIs
+- **Isolated Virtual Environments & `uv`** ([Chapters 2](./02-virtual-environments.md) & [3](./03-dependencies.md))
+- **Git Version Control & Branch Workflows** ([Chapter 4](./04-version-control.md))
+- **Instant Linting & Code Formatting with Ruff** ([Chapters 5](./05-linting.md) & [6](./06-code-formatting.md))
+- **Automated Unit Testing with `pytest`** ([Chapter 7](./07-unit-testing.md))
+- **Static Type Checking with `ty`** ([Chapter 8](./08-static-type-checking.md))
+- **Structured Logging with `Loguru`** ([Chapter 9](./09-logging.md))
+- **Automated CI/CD with GitHub Actions** ([Chapter 10](./10-ci-cd.md))
+- **Optional Power-Ups:** LLMs & Python sandboxes ([Ch 11](./11-llms.md)), Databases ([Ch 12](./12-database-libraries.md)), FastAPI ([Ch 13](./13-fastapi.md)), AWS Lambda ([Ch 14](./14-aws-lambda.md)), and Typer/Rich CLIs ([Ch 15](./15-cli-libraries.md))
 
-This chapter is a **capstone for the core track** (quality tooling + project layout + CI). Use Chapters 12–15 when you need APIs, data, serverless, or CLI libraries. The goal here is a project you could hand to a teammate without also handing them a 20-minute verbal footnote.
+In this chapter, we wire the entire **Core Track** together into a single, reproducible project setup—using `uv`, a golden `pyproject.toml`, a `Makefile` (so `make all` runs your entire quality gauntlet in one command), `pre-commit` hooks, Cookiecutter templates, and GitHub Actions CI.
 
-Examples in this chapter use **Python 3.14**. The floor is `requires-python = ">=3.13"` so 3.13 still works; 3.12 is security-only now, and 3.11 should not sneak back in via a YAML matrix from 2024.
+Whether your next project is a FastAPI startup backend, an LLM agent, or a ROS 2 robotics kinematics library, **this is the blueprint you can copy-paste on Day 1.**
+
+```mermaid
+flowchart TB
+    subgraph Local["💻 Your Laptop (Fast Inner Loop)"]
+        Init["1️⃣ Scaffold\nuv init --package myapp\n(or Cookiecutter)"] --> Code["2️⃣ Write Code & Tests\nsrc/myapp/ + tests/"]
+        Code --> Make["3️⃣ Run 'make all'\n• ruff format & check\n• ty check\n• pytest --cov"]
+        Make --> Hook["4️⃣ git commit\n(pre-commit hooks verify clean diff)"]
+    end
+
+    subgraph Cloud["☁️ GitHub (Automated Outer Loop)"]
+        PR["5️⃣ git push & Open PR"] --> Matrix["6️⃣ GitHub Actions CI\n• Quality job (Ruff + ty on 3.14)\n• Test Matrix (Ubuntu/macOS/Win × 3.13–3.15)"]
+        Matrix --> Merge["7️⃣ All Checks Green -> Merge to main!"]
+    end
+
+    Hook --> PR
+```
+
+> [!NOTE]
+> Examples in this chapter use **Python 3.14** as the default development version, with `requires-python = ">=3.13"` as the floor and `['3.13', '3.14', '3.15']` in the GitHub Actions test matrix.
 
 ## Creating a New Project with uv
 

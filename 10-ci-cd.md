@@ -4,83 +4,64 @@
 
 ## What is CI/CD?
 
-CI/CD stands for Continuous Integration and Continuous Deployment (or Delivery). It is the practice of letting a machine build, test, and (when you are ready) ship your software so humans do not have to remember the checklist.
+![Python CI/CD Automated Quality Gauntlet](./assets/ci-cd-pipeline.png)
 
-### Continuous Integration (CI)
+Imagine a world where every time you or your teammate pushes a commit or opens a Pull Request on GitHub, a brand-new cloud machine spins up in seconds, installs your exact `uv.lock` dependencies, runs `ruff`, checks types with `ty`, runs your entire `pytest` suite across Python 3.13, 3.14, and 3.15, and posts a green checkmark (or a red ❌) right on the PR.
 
-Automatically build and test code whenever changes are pushed to version control:
+That is **CI/CD**:
+- **Continuous Integration (CI):** Automatically building, linting, type-checking, and testing every code change the moment it is pushed to Git. No more *"Oh, I forgot to run `pytest` before pushing"* or *"Wait, it passed on my MacBook, why does it crash on Linux?"*
+- **Continuous Deployment / Delivery (CD):** Automatically packaging and shipping your code (to PyPI, AWS Lambda, or a container registry) once every CI check turns green.
 
-- The project still installs
-- Tests still pass
-- Lint, format, and type checks still agree with the repo
-- Integration surprises show up on the pull request, not on Friday afternoon
+---
 
-### Continuous Deployment (CD)
+## Why CI/CD Saves Group Projects and Startups Alike
 
-Automatically deploy to production after every green pipeline. If that sentence makes you nervous, use **Continuous Delivery** instead: every main-branch commit is *ready* to deploy, and a human still presses the button.
+1. **Kills "It Works on My Machine" Dead:** If you forgot to `git add` a new helper file, your tests still pass on your laptop (because the untracked file is sitting on your disk!), but CI runs in a fresh clone and catches the missing file immediately.
+2. **Protects `main` at 2 a.m.:** Tired humans skip checklists on Friday afternoons or during hackathon crunches. GitHub Actions never gets sleepy.
+3. **Tests Every OS & Python Version Automatically:** You code on macOS with Python 3.14; CI tests your code on Ubuntu, Windows, and macOS across Python 3.13, 3.14, and 3.15 in parallel.
+4. **Living Onboarding Docs:** When a new developer joins your project and wants to know how to build and test it, `.github/workflows/ci.yml` is the exact recipe.
 
-## Why Use CI/CD?
+```mermaid
+flowchart LR
+    Push["💻 git push / Open PR"] --> Trigger["⚡ GitHub Actions Triggered"]
+    subgraph Gauntlet["🤖 Fresh Cloud Runner (ubuntu-latest)"]
+        Checkout["1. actions/checkout@v7"] --> SetupUV["2. setup-uv@v10.3.3\n+ uv sync"]
+        SetupUV --> Lint["3. ruff check &\nruff format --check"]
+        Lint --> Type["4. ty check src/"]
+        Type --> Test["5. pytest --cov=src"]
+    end
+    Trigger --> Checkout
+    Test -- "✅ All Pass" --> Merge["🟢 PR Ready to Merge!"]
+    Test -- "❌ Any Step Fails" --> Block["🔴 Merge Blocked"]
+```
 
-1. **Catch bugs early.** Tests run on every change, including the one you were "just tweaking."
-2. **Consistent quality.** Linting, formatting, types, and tests run the same way for everyone.
-3. **Fast feedback.** Minutes, not "I'll run the suite later."
-4. **Less manual work.** The workflow file *is* the checklist.
-5. **Documentation.** New contributors can read `.github/workflows/ci.yml` instead of a wiki page last updated during a different Python.
-6. **Confidence.** Merging is less of a coin flip.
+---
 
 ## Introduction to GitHub Actions
 
-[GitHub Actions](https://github.com/features/actions) is GitHub's built-in CI/CD platform. Public repositories get a generous free tier; private repositories get a monthly allotment of minutes.
+**[GitHub Actions](https://github.com/features/actions)** is built directly into GitHub.
+- **Generous Free Tier:** Completely free for public open-source repositories, plus free monthly minutes for private repos (and extra benefits via the GitHub Student Developer Pack).
+- **Configured as Code:** Your pipeline is just a YAML file inside `.github/workflows/` tracked right alongside your Python code.
+- **Multi-OS Runners:** Spin up Linux (`ubuntu-latest`), macOS (`macos-latest`), or Windows (`windows-latest`) VMs on demand.
 
-### Why GitHub Actions?
+*(Other CI tools you'll meet in the wild include **GitLab CI/CD**, **CircleCI**, **Jenkins**, and **Azure Pipelines**—once you learn GitHub Actions YAML, the concepts translate everywhere.)*
 
-1. **Integrated** — lives next to the code, no extra service to provision
-2. **Free enough** — especially for open source
-3. **YAML, not a GUI maze** — the pipeline is versioned with the repo
-4. **Marketplace** — pre-built actions for checkout, caching, publishing
-5. **Flexible runners** — Linux, Windows, and macOS
+### Core GitHub Actions Vocabulary
 
-### Alternatives
+- **Workflow:** An automated pipeline defined in `.github/workflows/ci.yml`.
+- **Event (`on:`):** What triggers the workflow (`push`, `pull_request`, `release`, `schedule` cron, or a manual `workflow_dispatch` button click).
+- **Job (`jobs:`):** A set of steps that run on a fresh VM (**Runner**). Multiple jobs run in parallel by default unless you chain them with `needs:`.
+- **Step (`steps:`):** A single shell command (`run: uv run pytest`) or a reusable action (`uses: actions/checkout@v7`).
 
-- **GitLab CI/CD** — if the repo already lives on GitLab
-- **CircleCI** — third-party, still widely used
-- **Travis CI** — the early default; less central than it used to be
-- **Jenkins** — self-hosted, infinitely configurable, your problem to keep alive
-- **Azure Pipelines** — Microsoft's CI service
+---
 
-This chapter uses GitHub Actions because that is where most of the Python projects you will clone already run.
+## Creating Your First CI Workflow
 
-## GitHub Actions Concepts
+### 1. Where the File Lives
 
-### Workflows
+Create a `.github/workflows/` folder in your project root and add `ci.yml`:
 
-A workflow is an automated process defined in YAML under `.github/workflows/`.
-
-### Events
-
-Events trigger workflows:
-
-- `push` — code landed on a branch
-- `pull_request` — a PR opened or updated
-- `schedule` — cron, for the jobs nobody remembers to run
-- `workflow_dispatch` — a button in the Actions tab
-- `release` — a GitHub Release was published
-
-### Jobs, Steps, Runners
-
-A workflow contains **jobs**. Jobs run in parallel unless you say otherwise with `needs:`.
-
-Each job is a list of **steps**: checkout, install uv, run Ruff, run pytest.
-
-**Runners** are the machines. `ubuntu-latest` is the default that actually matches most Python packaging.
-
-## Creating Your First GitHub Actions Workflow
-
-A workflow that lints, checks formatting, type-checks, tests, and uploads coverage:
-
-### Directory Structure
-
-```
+```text
 myproject/
 ├── .github/
 │   └── workflows/
@@ -92,12 +73,11 @@ myproject/
 ├── tests/
 │   └── test_main.py
 ├── pyproject.toml
+├── uv.lock
 └── README.md
 ```
 
-### Basic CI Workflow
-
-Create `.github/workflows/ci.yml`:
+### 2. The Essential `.github/workflows/ci.yml`
 
 ```yaml
 name: CI
@@ -145,34 +125,18 @@ jobs:
           files: ./coverage.xml
 ```
 
-### Understanding the Workflow
+### Important Details in That File (Don't Copy Stale 2024 YAML!)
 
-1. **name** — shown in the GitHub UI and used by some badge URLs
-2. **on** — which events start a run
-3. **jobs** — one or more jobs
-4. **runs-on** — the runner image
-5. **steps** — sequential tasks inside a job
+> [!IMPORTANT]
+> 1. **Use `actions/checkout@v7`:** Older blog posts still show `actions/checkout@v4`, which ran on Node 20 (a runtime GitHub is retiring). Use `@v7`.
+> 2. **Pin a full version on `astral-sh/setup-uv@v10.3.3`:** `setup-uv` dropped moving major tags, so always pin a full release version like `@v10.3.3` (check [setup-uv releases](https://github.com/astral-sh/setup-uv/releases) for the latest) and set `enable-cache: true` so `uv` caches downloaded wheels across runs!
+> 3. **Supply-Chain Security Pro-Tip:** For high-security production repos, you can pin third-party actions to an immutable 40-character Git commit SHA (`uses: astral-sh/setup-uv@<40-char-sha> # v10.3.3`).
 
-`actions/checkout@v7` is the current checkout action. Older `@v4` examples still float around the internet; they run on Node 20, and GitHub is retiring that runtime. Prefer v7.
+---
 
-`astral-sh/setup-uv` **dropped moving major tags**. `@v5` or `@v10` will not quietly track new releases. Pin a full version such as `@v10.3.3`. Check [the setup-uv releases](https://github.com/astral-sh/setup-uv/releases) when you copy this file six months from now.
+## Matrix Testing: 3 OSes × 3 Python Versions at Once
 
-If you want to be extra careful about supply chain risk, pin third-party actions to a full commit SHA and leave the human-readable version in a comment:
-
-```yaml
-# Resolve the SHA from the action's GitHub release; do not copy a hash from memory
-# - uses: astral-sh/setup-uv@<40-character-sha>  # v10.3.3
-```
-
-Readable tutorials use version tags. Production repos that handle secrets often pin SHAs and let Dependabot bump both the SHA and the comment.
-
-### Caching
-
-`astral-sh/setup-uv` with `enable-cache: true` caches uv's download cache. Combined with `uv.lock`, installs stay fast and reproducible. You do not need a separate `actions/cache` step for pip's `~/.cache/pip` — this tutorial does not use pip as the CI installer.
-
-## Matrix Testing
-
-Test the versions you claim to support. Skip EOL releases; as of this writing that means treating 3.13–3.15 as the interesting matrix:
+Want to prove your library works on Linux, macOS, and Windows across Python `3.13`, `3.14`, and `3.15`? You don't write 9 separate jobs—you use a **`matrix`**:
 
 ```yaml
 name: CI
@@ -206,11 +170,13 @@ jobs:
         run: uv run pytest
 ```
 
-`fail-fast: false` lets the 3.15 / Windows cell finish even if macOS 3.13 already failed. That extra signal is usually worth the minutes.
+Setting **`fail-fast: false`** tells GitHub Actions: *"If Python 3.15 on Windows fails, don't immediately cancel the other 8 combinations—let them finish so I can see right away whether the bug is Windows-only or 3.15-only!"*
 
-## Multiple Jobs
+---
 
-Split lint, types, and tests so a formatting nit does not hide a test failure — and so they can run in parallel:
+## Parallel Jobs (Splitting Lint, Types, and Tests)
+
+Instead of running everything in one long list (where a missing space in `ruff format --check` stops `pytest` from even running), you can split them into parallel jobs that run at the exact same time:
 
 ```yaml
 name: CI
@@ -259,11 +225,11 @@ jobs:
       - run: echo "All checks passed!"
 ```
 
-The `all-checks-passed` job is a convenient single required status check: branch protection can require that one name instead of three.
+---
 
-## Real-World Example
+## Production Pipeline: Quality + Matrix Tests + Trusted PyPI Publish
 
-A package workflow: quality on 3.14, tests on a version × OS matrix, publish to PyPI with Trusted Publishing when a GitHub Release is published.
+When you're ready to publish a package to PyPI automatically whenever you create a GitHub Release, use **PyPI Trusted Publishing (OIDC)**—no long-lived `PYPI_API_TOKEN` secret to copy-paste or leak!
 
 ```yaml
 name: CI/CD
@@ -324,7 +290,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'release'
     permissions:
-      id-token: write  # Trusted Publishing (OIDC)
+      id-token: write  # Enables OIDC Trusted Publishing with PyPI!
 
     steps:
       - uses: actions/checkout@v7
@@ -337,13 +303,13 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
 ```
 
-**Trusted Publishing** is the current PyPI story: you prove GitHub identity with OIDC instead of stuffing a long-lived `PYPI_TOKEN` into Actions secrets. Configure the publisher on PyPI (project → Publishing), then the `id-token: write` permission above is enough. [PyPI's trusted publishers docs](https://docs.pypi.org/trusted-publishers/) are the source of truth for the click-path.
+*(See [PyPI's Trusted Publishers guide](https://docs.pypi.org/trusted-publishers/) to link your GitHub repo on pypi.org in 30 seconds.)*
 
-`pypa/gh-action-pypi-publish@release/v1` is the maintained tag line; still prefer a SHA pin if this workflow is the one thing standing between you and an unexpected package upload.
+---
 
-## Status Badges
+## Adding the Green Badge of Honor to Your `README.md`
 
-Put the boring green check where people actually look — the README:
+Nothing says *"This repo is actually maintained"* to recruiters and teammates like a live green CI badge at the top of your `README.md`:
 
 ```markdown
 # My Project
@@ -352,177 +318,62 @@ Put the boring green check where people actually look — the README:
 [![codecov](https://codecov.io/gh/username/repo/branch/main/graph/badge.svg)](https://codecov.io/gh/username/repo)
 ```
 
-Point the CI badge at the workflow *file* (`ci.yml`). The older `/workflows/CI/badge.svg` form still appears in copy-pasted READMEs; the file-based URL is the one GitHub documents now.
+*(Make sure the badge URL points to the filename `ci.yml`, not the older workflow title syntax!)*
 
-## Best Practices
+---
 
-### 1. Fail Fast (When You Mean It)
+## CI/CD Best Practices & Lifesavers
 
-```yaml
-strategy:
-  fail-fast: true  # cancel remaining matrix cells if one fails
-  matrix:
-    python-version: ['3.13', '3.14', '3.15']
-```
-
-Use `true` when a single failure makes the rest of the matrix a waste of minutes. Use `false` (as in the full example above) when you want every Python version's opinion.
-
-### 2. Pin Action Versions (or SHAs)
-
-```yaml
-# Good enough for a tutorial and most repos — a released tag
-- uses: actions/checkout@v7
-- uses: astral-sh/setup-uv@v10.3.3
-
-# Extra careful — immutable commit SHA (resolve from the release)
-# - uses: astral-sh/setup-uv@<full-sha>  # v10.3.3
-
-# Bad — a branch that moves under you
-- uses: actions/checkout@main
-```
-
-Tags can be retargeted. SHAs cannot. First-party GitHub actions (`actions/checkout`) are a milder risk than a random Marketplace action with access to `secrets.*`.
-
-### 3. Cache Dependencies
-
-Prefer uv's own cache via `enable-cache: true`. Reach for `actions/cache` only if you are caching something uv does not already handle.
-
-### 4. Set a Timeout
+### 1. Set `timeout-minutes` So Hung Tests Don't Burn All Your Free Minutes
+If a test accidentally waits on `input()` or an infinite `while True:` robotics loop, GitHub Actions will happily let it spin for **6 hours** by default! Cap it at 10 minutes:
 
 ```yaml
 jobs:
   test:
-    timeout-minutes: 10  # hung pytest is still a failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
 ```
 
-A job that waits forever is indistinguishable from a job that works, until your bill arrives.
-
-### 5. Use Secrets for Sensitive Data
+### 2. Store Secrets in GitHub Settings, Never in YAML
+Need an API key or cloud credential during CI/CD? Add it under **Repo Settings → Secrets and variables → Actions**, then reference it via `${{ secrets.MY_KEY }}`:
 
 ```yaml
-- name: Deploy
+- name: Run integration smoke test
   env:
     API_KEY: ${{ secrets.API_KEY }}
-  run: ./deploy.sh
+  run: uv run pytest -m integration
 ```
 
-Add secrets at **Settings → Secrets and variables → Actions**. Never commit them. Never print them. GitHub masks values that exactly match a secret; it cannot mask a secret you `echo` after concatenating it with a greeting.
+### 3. Turn On Branch Protection (Make Green CI Mandatory)
+A CI pipeline is just a polite suggestion if people can still click **Merge** when it's red!
+Go to your repo's **Settings → Rules → Rulesets** (or **Branches**), target `main`, and check **Require status checks to pass before merging**. Now `main` is officially invincible against broken tests.
 
-### 6. Only Run When Needed
-
-```yaml
-on:
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'pyproject.toml'
-```
-
-Handy for monorepos. Easy to get wrong: forget `pyproject.toml` and a dependency bump will skip CI. If in doubt, run on every change.
-
-### 7. Conditional Steps
-
-```yaml
-- name: Deploy
-  if: github.ref == 'refs/heads/main'
-  run: ./deploy.sh
-```
-
-## Local Testing with act
-
-[act](https://github.com/nektos/act) runs GitHub Actions workflows on your machine. It is not a perfect replica of `ubuntu-latest`, but it catches YAML typos and missing env vars before you push.
+### 4. Test Workflows Locally with `act`
+Tired of making 8 commits named `"fix ci yaml typo"` just to test your workflow file? **[act](https://github.com/nektos/act)** runs your GitHub Actions workflows locally inside Docker:
 
 ```bash
-# Install act
-brew install act  # macOS
-# or
-curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+# Install on macOS (or see nektos/act on GitHub for Linux/Windows)
+brew install act
 
-# Run workflows locally
+# Run the default push workflow locally
 act
 
-# Run a specific job
+# Run just the 'test' job
 act -j test
-
-# Simulate a pull_request event
-act pull_request
 ```
 
-The first run downloads a runner image. After that it is merely slow in the ordinary Docker way.
-
-## Troubleshooting
-
-### Workflow Not Running
-
-Check:
-
-- The file is under `.github/workflows/` and ends in `.yml` or `.yaml`
-- YAML is valid (two spaces, not a creative mix of tabs)
-- The `on:` events match what you actually did
-- The branch name is really `main` (or whatever you wrote)
-
-### Authentication Issues
-
-For private dependencies:
-
-```yaml
-- name: Install private package
-  env:
-    PRIVATE_TOKEN: ${{ secrets.PRIVATE_TOKEN }}
-  run: uv add "git+https://${PRIVATE_TOKEN}@github.com/user/repo.git"
-```
-
-Prefer deploy keys or a fine-grained token with the smallest possible scope. A personal access token with `repo` on your whole account is how private packages become public incidents.
-
-### Slow Workflows
-
-- Keep `enable-cache: true` on setup-uv
-- Run independent jobs in parallel
-- Do not install docs extras just to run pytest
-- Upload coverage from one matrix cell, not twelve
-
-## Monitoring and Notifications
-
-### Email
-
-GitHub emails workflow failures if you watch the repository. That is enough until it is not.
-
-### Slack
-
-Third-party notify actions exist (for example `8398a7/action-slack`). Treat them like any other third-party action: pin a version or SHA, store the webhook as a secret, and only fire on `failure()` unless you enjoy channel noise.
-
-```yaml
-- name: Notify Slack
-  if: failure()
-  uses: 8398a7/action-slack@v3
-  with:
-    status: ${{ job.status }}
-    webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-```
-
-## Required Status Checks
-
-A green CI run that nobody is required to wait for is a suggestion. Make it a gate:
-
-1. Repository **Settings**
-2. **Rules** → **Rulesets**, or the older **Branches** → branch protection rule
-3. Target `main`
-4. Enable **Require status checks to pass before merging**
-5. Select the job names from your workflow (`test`, `quality`, or `all-checks-passed`)
-
-Pull requests then stay unmergeable until those checks report success. GitHub's UI labels move around; the idea does not: named checks, matching job names, limited bypass.
+---
 
 ## Quick Reference
 
 ```yaml
-# Basic CI with uv
+# Minimal modern Python CI (.github/workflows/ci.yml)
 name: CI
 on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.3
@@ -534,30 +385,14 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run ty check src/
       - run: uv run pytest --cov=src --cov-report=xml
-
-# Matrix testing
-strategy:
-  matrix:
-    python-version: ['3.13', '3.14', '3.15']
-    os: [ubuntu-latest, macos-latest]
-
-# Conditional execution
-if: github.ref == 'refs/heads/main'
-
-env:
-  PYTHON_VERSION: '3.14'
-
-# Secrets
-${{ secrets.SECRET_NAME }}
-
-# PyPI Trusted Publishing
-permissions:
-  id-token: write
-# uses: pypa/gh-action-pypi-publish@release/v1
 ```
+
+---
 
 ## What's Next?
 
-CI will faithfully run whatever you committed, including the function an AI autocomplete invented at 1 a.m. Next we look at LLM-powered tools — Copilot, Cursor, Claude Code, Codex, and Grok Build — and the parts of the job they do not get to skip.
+Congratulations—you've finished the entire **Core Track** (Chapters 1–10)! Your repo has isolated environments, locked dependencies, Git history, instant linting and formatting, unit tests, static type checking, structured logging, and automated CI/CD.
+
+Now you can either jump straight to **[Chapter 16: Putting It All Together](./16-putting-it-together.md)** for the full capstone walkthrough, or dive into the **Power-Up Tracks** starting with **[Chapter 11: LLMs and AI-Powered Development](./11-llms.md)**!
 
 [← Previous: Logging](./09-logging.md) | [Back to README](./README.md) | [Next: LLMs →](./11-llms.md)
