@@ -96,7 +96,7 @@ flowchart LR
 
 ## The "Elephant–Goldfish" Model & Spec-Driven Development (SDD)
 
-Before you install a single AI coding tool, you need one mental model that explains 90% of why AI agents succeed on some tasks and produce unmaintainable spaghetti on others.
+Before you install a single AI coding tool, you need one mental model—the **[Elephant–Goldfish Model](https://egm.dev/)**—that explains 90% of why AI agents succeed on some tasks and produce unmaintainable spaghetti on others.
 
 ### Your AI Agent Is Half Elephant, Half Goldfish
 

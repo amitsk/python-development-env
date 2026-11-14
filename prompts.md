@@ -70,7 +70,7 @@ the details in this file. The audience for the tutorial are CS students, new dev
 *** LLMs
     **** Explain what is LLMs. Benefits of LLMs and using these in python projects
     **** Explain how LLMs use Python as their own scripting language for complex tasks (Code Interpreter sandboxes, deterministic math/data analysis, programmatic tool use, and "Code as Policies" in robotics)
-    **** Explain Spec-Driven Development (SDD) and the Elephant-Goldfish mental model (encyclopedic pre-trained knowledge like an elephant, zero persistent session/project memory like a goldfish—solved by keeping written specs and CLAUDE.md/AGENTS.md in the repo)
+    **** Explain Spec-Driven Development (SDD) and the Elephant-Goldfish mental model (https://egm.dev/ — encyclopedic pre-trained knowledge like an elephant, zero persistent session/project memory like a goldfish—solved by keeping written specs and CLAUDE.md/AGENTS.md in the repo)
     **** Concise one-sentence overview with links for AI development tools: Claude Code, GitHub Copilot & Copilot CLI, Cursor, OpenAI Codex CLI, Google Antigravity (agy), OpenCode, and Grok Build
     **** Detailed walkthrough and examples for Claude Code (native install: curl -fsSL https://claude.ai/install.sh | bash, CLAUDE.md, writing a feature spec in specs/, implementing in a fresh session, and verification loop) tied into SDD and the Elephant-Goldfish model
     **** Tools change fast; send readers to official docs for pricing/install
