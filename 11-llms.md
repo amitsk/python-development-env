@@ -32,15 +32,15 @@ sequenceDiagram
     autonumber
     actor User as 👤 User
     participant LLM as 🧠 LLM Agent
-    participant Box as 🐍 Python Sandbox (uv / Container)
+    participant Sandbox as 🐍 Python Sandbox (uv / Container)
 
     User->>LLM: "Analyze sensor_log.csv: find when the drone's IMU spiked >3G and plot the trajectory."
     Note over LLM: Don't guess the numbers!<br/>Write a Python script instead.
-    LLM->>Box: Writes & runs analyze_imu.py (pandas + numpy + matplotlib)
-    Box-->>LLM: Traceback: KeyError 'accel_z' (column is 'az_m_s2')
+    LLM->>Sandbox: Writes & runs analyze_imu.py (pandas + numpy + matplotlib)
+    Sandbox-->>LLM: Traceback: KeyError 'accel_z' (column is 'az_m_s2')
     Note over LLM: Self-corrects script using actual column names
-    LLM->>Box: Re-runs fixed Python script
-    Box-->>LLM: stdout: "Spike at t=14.22s (3.41G)" + trajectory.png
+    LLM->>Sandbox: Re-runs fixed Python script
+    Sandbox-->>LLM: stdout: "Spike at t=14.22s (3.41G)" + trajectory.png
     LLM->>User: Verified exact timestamps, root-cause summary, and plot!
 ```
 
@@ -94,286 +94,174 @@ flowchart LR
 
 ---
 
-## Categories of AI Development Tools
+## The "Elephant–Goldfish" Model & Spec-Driven Development (SDD)
 
-| Category | Examples | Best for |
-|----------|----------|----------|
-| **Editor / IDE assistants** | GitHub Copilot, Cursor | Instant inline ghost-text completions, side-panel chat, multi-file IDE edits |
-| **Terminal coding agents** | Claude Code, Codex, Grok Build | Autonomous multi-step tasks, repo-wide refactors, running shell commands & tests |
-| **Platform-integrated** | GitHub Copilot (PRs, reviews) | Summarizing pull requests and catching obvious issues on GitHub |
+Before you install a single AI coding tool, you need one mental model that explains 90% of why AI agents succeed on some tasks and produce unmaintainable spaghetti on others.
 
-> [!NOTE]
-> AI tools rename their tiers, swap underlying models, and update their pricing faster than JavaScript frameworks used to change build tools. **Always check the official vendor docs for current install commands and pricing.** What follows is a field guide to the tools you'll actually meet in Python teams today.
+### Your AI Agent Is Half Elephant, Half Goldfish
 
----
+- **🐘 The Elephant (Pre-trained Knowledge):** An LLM has an elephant's memory for general programming knowledge. It remembers almost every Python standard library module, FastAPI pattern, `pytest` fixture trick, robotics math formula, and RFC ever published.
+- **🐠 The Goldfish (Project & Session Memory):** Across sessions—or as soon as a long conversation fills up the context window—that exact same model has the memory of a goldfish. Every new session wakes up with total amnesia about *your* project: it doesn't know why you rejected a design yesterday, which edge cases crash your drone controller, or that your team uses `uv` and `ty` instead of `pip` and `mypy`.
 
-## GitHub Copilot
+```mermaid
+flowchart TB
+    subgraph Brain["🧠 How an LLM Coding Agent Actually Thinks"]
+        Elephant["🐘 Elephant Memory (Pre-Training)\n• Knows Python 3.14, FastAPI, NumPy, pytest\n• Knows algorithms & common idioms\n• Permanent across all sessions"]
+        Goldfish["🐠 Goldfish Memory (Context Window)\n• Resets every new session or /clear\n• Forgets why you made yesterday's trade-offs\n• Drifts during long 'vibe coding' chats"]
+    end
 
-[GitHub Copilot](https://github.com/features/copilot) is GitHub's AI pair programmer. It lives inside your editor and across GitHub.com (chat, pull requests, and code review).
+    subgraph SDD["📄 Spec-Driven Development (The Goldfish's External Brain)"]
+        ClaudeMD["CLAUDE.md / AGENTS.md\nRepo stack, rules & uv commands"]
+        SpecMD["specs/feature-xyz.md\nInputs, types, edge cases & non-goals"]
+        Tests["pytest + Ruff + ty\nDeterministic pass/fail referee"]
+    end
 
-### Key Features
-- **Inline completions** — ghost text appears as you type; hit `Tab` to accept
-- **Copilot Chat** — ask questions, refactor, and generate tests without leaving your editor
-- **Agent mode** — multi-step, multi-file edits that can iterate on errors
-- **Wide editor support** — VS Code, JetBrains (PyCharm), Neovim, Visual Studio
-- **GitHub integration** — PR summaries and review suggestions right on GitHub
-- **Model picker** — switch between models depending on your plan
+    SDD -->|"Loaded into every fresh session"| Goldfish
+    Elephant --> Output["✅ Consistent, Test-Verified Python Code"]
+    Goldfish --> Output
+```
 
-*(Bonus for students: Check out the [GitHub Student Developer Pack](https://education.github.com/pack)—verified students typically get Copilot access for free!)*
+### Spec-Driven Development (SDD): Giving the Goldfish a Notebook
 
-### Getting Started
-1. Enable Copilot on your account at [GitHub Copilot](https://github.com/features/copilot)
-2. Install the **GitHub Copilot** extension in VS Code (`Ctrl+Shift+X` / `Cmd+Shift+X`)
-3. Sign in with your GitHub account
-4. Start coding—inline completions show up in gray text, or open Chat for bigger tasks
+If you build software by casually chatting with an agent back and forth for two hours (*"vibe coding"*), the goldfish eventually forgets the constraints from message #3 while fixing a bug in message #47.
 
-Check the [Copilot documentation](https://docs.github.com/en/copilot) for the latest setup details.
+**Spec-Driven Development (SDD)** fixes the goldfish problem by moving your project context and requirements out of ephemeral chat history and into version-controlled files in your repository:
 
-### Using Copilot for Python
-1. **Signature-driven completion:** Write a well-typed function signature and a 1-line docstring (`def clamp_motor_torque(torque_nm: float, max_nm: float = 12.0) -> float:`), then let Copilot draft the body.
-2. **Chat for tests:** *"Add pytest tests for `calculate_total` including empty lists and negative discounts."*
-3. **Explain unfamiliar code:** Highlight a gnarly regex or async generator and ask Chat to break it down line by line.
-4. **Agent mode:** *"Add type hints to every module under `src/`."* Then run `uv run ty check` yourself to verify.
-
-### Tips
-- **Specificity wins:** *"Validate email with a regex, return `bool`, include type hints and a Google-style docstring"* beats *"write email validator."*
-- Add a `.github/copilot-instructions.md` file to your repo so Copilot knows your project uses `uv`, `Ruff`, and `pytest`.
-- Treat every completion as a draft patch, not gospel.
-
-### Links
-- [GitHub Copilot](https://github.com/features/copilot)
-- [Copilot documentation](https://docs.github.com/en/copilot)
+1. **Persistent Repo Memory (`CLAUDE.md` / `AGENTS.md`):** A short file in your repo root that tells every fresh agent session your exact stack (`uv`, `ruff`, `ty`, `pytest`), directory layout, and coding rules.
+2. **Feature Specifications (`specs/<feature>.md`):** Before the agent writes a single line of implementation code, you write (or co-write with the agent) a crisp specification defining the **goal, non-goals, data models/signatures, edge cases, and acceptance criteria**.
+3. **Fresh-Context Execution & Deterministic Verification:** Because the spec and repo rules live on disk, you can wipe the chat context (`/clear`) between planning, implementation, and review—and let `uv run ruff check .`, `uv run ty check`, and `uv run pytest` act as the unbribeable referee.
 
 ---
 
-## Cursor
+## AI Development Tools at a Glance
 
-[Cursor](https://cursor.com) is an AI-first code editor forked from VS Code. Instead of bolting AI onto the side as a plugin, chat, inline diffs, and multi-file agents are built into the core editor experience.
+AI tools evolve and change pricing constantly, so always check their official documentation for current setup and plan details; here is the one-sentence field guide to the tools you'll meet in Python workflows today:
 
-### Key Features
-- **Codebase-indexed AI chat** — understands how files across your repo connect
-- **Inline edit (`Cmd+K` / `Ctrl+K`)** — highlight code, describe the change, and review an inline green/red diff
-- **Multi-file Composer / Agent** — creates and edits multiple files across a project
-- **100% VS Code familiarity** — imports your existing VS Code extensions, themes, and keybindings in one click
-
-### Getting Started
-1. Download from [cursor.com](https://cursor.com)
-2. Import your VS Code extensions and settings during first launch
-3. Sign in and pick a plan per Cursor's current options
-4. Always open your **project root directory** so Cursor can see `pyproject.toml`, `src/`, and `tests/`
-
-### Using Cursor for Python
-1. **Inline edit:** Highlight a messy function, press `Cmd+K` / `Ctrl+K`, and type *"Convert this dict into a Pydantic BaseModel with validation."*
-2. **Multi-file feature:** Ask the agent to add a new FastAPI endpoint in `routes.py`, a schema in `models.py`, and a test in `test_routes.py`.
-3. **Debug from terminal:** When `uv run pytest` fails in Cursor's built-in terminal, send the traceback straight to chat for a targeted fix.
-
-### Tips
-- Avoid vague prompts like *"make this better"*—that's how you get an unreviewable 300-line rewrite.
-- Read every diff before clicking **Accept**. Cursor generates code fast; untangling a bad accept takes much longer than reading it first.
-- Keep `Ruff` and `pytest` as the final referee.
-
-### Links
-- [Cursor](https://cursor.com)
-- [Cursor documentation](https://cursor.com/docs)
+- **[Claude Code](https://github.com/anthropics/claude-code) ([docs](https://docs.anthropic.com/en/docs/claude-code)):** Anthropic's agentic terminal coding tool that reads your repository, edits files, runs shell commands (`uv`, `pytest`, `ruff`), and iterates in a loop until checks pass *(covered in depth below)*.
+- **[GitHub Copilot](https://github.com/features/copilot) & [Copilot CLI](https://docs.github.com/en/copilot/github-copilot-in-the-cli) ([docs](https://docs.github.com/en/copilot)):** GitHub's AI pair programmer offering inline IDE completions, chat, multi-file agent mode, PR reviews, and terminal agent workflows via Copilot CLI *(free for verified students via the [GitHub Student Developer Pack](https://education.github.com/pack))*.
+- **[Cursor](https://cursor.com) ([docs](https://cursor.com/docs)):** An AI-first code editor forked from VS Code with codebase-indexed chat, inline diff editing (`Cmd/Ctrl+K`), and multi-file agent workflows built into the editor.
+- **[OpenAI Codex CLI](https://github.com/openai/codex) ([OpenAI Codex](https://openai.com/codex/)):** OpenAI's open-source terminal coding agent and cloud coding ecosystem that inspects your repo, edits files, and runs local test and lint commands to verify changes.
+- **[Google Antigravity (`agy`)](https://antigravity.google/docs) ([CLI docs](https://antigravity.google/docs/cli/reference), [Python SDK](https://github.com/google-antigravity/antigravity-sdk-python)):** Google's AI-first development platform and terminal CLI (`agy`) for orchestrating autonomous coding agents, subagents, skills, and MCP tools across your workspace.
+- **[OpenCode](https://opencode.ai) ([GitHub](https://github.com/sst/opencode)):** An open-source, provider-agnostic terminal coding agent with a rich TUI that lets you bring your own API keys or local models.
+- **[Grok Build](https://x.ai/cli) ([xAI](https://x.ai/)):** xAI's terminal coding agent powered by Grok models that navigates repositories, patches files, and executes verification commands in an interactive loop.
 
 ---
 
-## Claude Code
+## Deep Dive: Spec-Driven Python Development with Claude Code
 
-[Claude Code](https://github.com/anthropics/claude-code) is Anthropic's agentic coding tool that lives directly in your terminal. It reads your codebase, edits files, runs terminal commands (`uv run pytest`, `uv run ruff check .`), reads the output, and loops until the task is done.
+Let's walk through a real **Spec-Driven Development** workflow using **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)**—showing how to pair the Elephant's Python knowledge with external memory files so the Goldfish never loses the plot.
 
-### Key Features
-- **Terminal-first workflow** — works alongside any editor (VS Code, Neovim, PyCharm, SSH session)
-- **Full repo awareness** — searches files, traces imports, and edits across directories
-- **Autonomous implement-test-fix loops** — runs your test suite and fixes its own bugs
-- **Great for refactors** — *"Migrate all logging calls in `src/` from `print()` to `loguru`"*
+### 1. Install and Launch Claude Code
 
-### Installing Claude Code
-
-Anthropic recommends the **native installer** (no Node.js required):
+Anthropic recommends the native installer (no Node.js required):
 
 ```bash
 # macOS / Linux / WSL
 curl -fsSL https://claude.ai/install.sh | bash
-```
 
-Alternative if you already use `npm`:
-
-```bash
-npm install -g @anthropic-ai/claude-code
-```
-
-Verify the install:
-
-```bash
+# Verify installation
 claude --version
 ```
 
-Authentication, plans, and supported models evolve quickly—follow the official [Claude Code docs](https://docs.anthropic.com/en/docs/claude-code).
+*(If you prefer `npm`, `npm install -g @anthropic-ai/claude-code` also works; see the [Claude Code docs](https://docs.anthropic.com/en/docs/claude-code) for Windows and authentication setup.)*
 
-### Using Claude Code
-
-Start an interactive session in your project root:
+Start an interactive session from your Python project's root directory:
 
 ```bash
-cd myproject
+cd rover-telemetry
 claude
 ```
 
-Then give it a concrete outcome:
+### 2. Cure Repo Amnesia with `CLAUDE.md`
+
+Claude Code automatically reads **`CLAUDE.md`** in your repository root at the start of every session. You can generate a starter file by running `/init` inside Claude Code, or create a focused one like this:
+
+```markdown
+# CLAUDE.md — Project Memory for AI Agents
+
+## Stack & Commands
+- Package & env manager: `uv` (NEVER run bare `pip` or `python`; always use `uv add` and `uv run`)
+- Python version: 3.14 (`requires-python = ">=3.13"`)
+- Linter & formatter: `uv run ruff check .` and `uv run ruff format --check .`
+- Type checker: `uv run ty check`
+- Test runner: `uv run pytest`
+
+## Code Conventions
+- All functions in `src/` must have complete Python 3.14+ type hints (`list[float]`, `str | None`).
+- Raise explicit domain exceptions (`ValueError`) on invalid sensor parameters; never silently return `None` on bad config.
+- Every new feature or bugfix requires a spec in `specs/` and unit tests in `tests/`.
+```
+
+Now, even when you close your laptop and start a brand-new session next week, the Goldfish immediately knows your toolchain and rules on turn #1.
+
+### 3. Step 1 of SDD: Co-Write the Spec First (Plan Mode)
+
+Suppose we are building a LiDAR range-filtering module for a rover. Instead of typing *"write a lidar filter"* and hoping for the best, start Claude Code in **Plan Mode** (`Shift+Tab` to toggle Plan Mode, or ask it to draft a spec before touching `src/`):
 
 ```text
-Add a FastAPI /health endpoint that returns the app version from pyproject.toml, and write pytest coverage for it.
+We need a LiDAR scan filter module for our rover.
+Do NOT write implementation code yet.
+Ask me any clarifying questions you need, then write a concise specification to specs/lidar_filter.md.
 ```
 
-Or run one-shot tasks straight from your shell (check `claude --help` for current flags):
+After answering its questions, you commit a concrete spec file (**`specs/lidar_filter.md`**) to Git:
 
-```bash
-claude "Review src/parser.py for edge cases and suggest pytest tests"
+```markdown
+# Spec: LiDAR Scan Range & Median Filter (`specs/lidar_filter.md`)
+
+## Goal
+Provide pure, deterministic functions in `src/rover_telemetry/lidar.py` to sanitize raw 2D LiDAR distance scans before obstacle avoidance reads them.
+
+## Non-Goals
+- No ROS 2 node pub/sub wiring in this module (pure math/data functions only).
+- No external C/NumPy dependencies; use Python stdlib (`math`, `statistics`, `dataclasses`).
+
+## Data Model & Signatures
+- `LidarConfig(min_range_m: float = 0.15, max_range_m: float = 12.0)` (frozen `@dataclass(slots=True)`)
+  - Must validate `0.0 < min_range_m < max_range_m` in `__post_init__`, raising `ValueError` otherwise.
+- `sanitize_scan(ranges_m: Sequence[float], config: LidarConfig) -> list[float]`
+  - Drops `math.isnan` and `math.isinf` readings.
+  - Clamps finite readings into `[config.min_range_m, config.max_range_m]`.
+- `windowed_median(ranges_m: Sequence[float], window: int = 3) -> list[float]`
+  - Raises `ValueError` if `window < 1` or `window` is even.
+  - Returns `[]` for an empty input sequence.
+
+## Acceptance Criteria
+1. 100% type-annotated (`uv run ty check` passes with zero warnings).
+2. `uv run ruff check .` and `uv run ruff format --check .` pass cleanly.
+3. `tests/test_lidar.py` covers happy paths, `NaN`/`-inf`/`+inf`, clamping boundaries, invalid `LidarConfig`, even window sizes, and empty scans.
 ```
 
-### Example Python Workflows
+### 4. Step 2 of SDD: Implement Against the Spec in a Fresh Session
 
-```bash
-# Build a new module
-claude "Create a small auth module with password hashing and JWT helpers"
-
-# Generate tests with edge cases
-claude "Write pytest tests for src/auth.py including expired tokens and bad passwords"
-
-# Make the agent eat its vegetables
-claude "Run uv run ruff check . and uv run pytest, then fix any issues you introduced"
-```
-
-### Links
-- [Claude Code on GitHub](https://github.com/anthropics/claude-code)
-- [Claude Code documentation](https://docs.anthropic.com/en/docs/claude-code)
-
----
-
-## OpenAI Codex
-
-[OpenAI Codex](https://openai.com/codex/) is OpenAI's coding-agent ecosystem. The open-source [Codex CLI](https://github.com/openai/codex) runs locally in your terminal: it inspects your repository, edits files, and executes commands to verify its work. Codex also powers cloud coding workflows inside ChatGPT depending on your plan.
-
-### Key Features
-- **Local terminal agent** with full repository context
-- **Multi-step implement-and-debug loops**
-- **Executes local commands** (linters, test suites, build scripts)
-- **Integrates with OpenAI / ChatGPT plans** and editor workflows
-
-### Installing Codex CLI
-
-Check [openai.com/codex](https://openai.com/codex/) and the [GitHub README](https://github.com/openai/codex) for the current recommended install path. Common options:
-
-```bash
-# Standalone installer (macOS / Linux) — confirm on official docs
-curl -fsSL https://chatgpt.com/codex/install.sh | sh
-
-# npm
-npm install -g @openai/codex
-
-# Homebrew
-brew install --cask codex
-```
-
-Launch it from your project directory:
-
-```bash
-cd myproject
-codex
-```
-
-Sign in with your ChatGPT account or an API key per the current documentation.
-
-### Using Codex for Python
-
-```bash
-# Start interactive session
-codex
-
-# Task-oriented prompts (exact flags depend on CLI version)
-codex "Add a CLI entry point with Typer and a --verbose flag"
-codex "Fix the failing pytest in tests/test_main.py"
-```
-
-### Tips
-- Add an `AGENTS.md` file in your repo root describing your stack (`uv`, `ruff`, `ty`, `pytest`) so the agent follows your conventions automatically on every run.
-- Prefer small, reviewable tasks over *"rewrite my whole app"* at 11 p.m.
-- Always run `uv run pytest` and `uv run ruff check .` yourself before committing.
-
-### Links
-- [OpenAI Codex](https://openai.com/codex/)
-- [Codex CLI on GitHub](https://github.com/openai/codex)
-
----
-
-## Grok Build
-
-**Grok Build** is xAI's terminal coding agent. Like Claude Code and Codex CLI, it explores your repository, edits files, runs shell commands, and iterates until your checks pass—powered by xAI's Grok models underneath.
-
-### Key Features
-- **Agentic terminal UI** for interactive coding
-- **Project-aware navigation** (read, search, patch across files)
-- **Command execution** for running `uv`, `pytest`, and linters in a loop
-- **Structured workflows** for planning, implementing, and reviewing changes
-
-*(Note: Stick to documented flags in `grok --help` and official xAI docs.)*
-
-### Getting Started
-
-```bash
-# macOS / Linux / WSL (common install; confirm on xAI docs)
-curl -fsSL https://x.ai/cli/install.sh | bash
-
-grok --version
-```
-
-Start it inside your project:
-
-```bash
-cd myproject
-grok
-```
-
-For authentication, access tiers, and current docs, start at [x.ai](https://x.ai/) and [x.ai/cli](https://x.ai/cli).
-
-### Using Grok Build for Python
-
-Prompts that pair well with this guide's stack:
+Here is the magic of the Elephant–Goldfish model: once `specs/lidar_filter.md` is saved, **run `/clear`** inside Claude Code (or start a fresh session). You just wiped the noisy brainstorming chat, so the context window is 100% clean, focused, and cheap:
 
 ```text
-Set up this repo with uv, Ruff, pytest, and a GitHub Actions CI workflow
-matching our existing pyproject.toml conventions.
-
-Add SQLModel models and a FastAPI CRUD API for a Hero resource,
-with pytest + FastAPI TestClient coverage.
-
-Review uncommitted changes for security issues and missing tests.
+Implement specs/lidar_filter.md.
+Follow all conventions in CLAUDE.md, write the unit tests in tests/test_lidar.py,
+and run uv run ruff check ., uv run ty check, and uv run pytest until all checks pass.
 ```
 
-Always tell the agent to **run** your tools (`uv run ruff check . && uv run pytest`), not just eyeball the code!
+Behind the scenes, Claude Code will:
+1. Read `CLAUDE.md` and `specs/lidar_filter.md`.
+2. Create `src/rover_telemetry/lidar.py` and `tests/test_lidar.py`.
+3. Execute `uv run ruff check .`, `uv run ty check`, and `uv run pytest` in your terminal.
+4. Read any failure traceback, fix the code, and re-run until green.
 
-### Tips
-- Point the agent at `pyproject.toml` and `.github/workflows/ci.yml` so it matches your exact rules.
-- Treat it like a very fast junior teammate: give clear specs, work in small commits, and review every diff.
+### 5. Step 3 of SDD: Independent Spec Verification & One-Shot CLI Runs
 
-### Links
-- [xAI](https://x.ai/)
-- CLI install and product docs: start from [x.ai/cli](https://x.ai/cli) and current Grok Build documentation
+You can also invoke Claude Code directly from your shell for one-shot tasks, adversarial code reviews, or piping Unix output straight into the agent:
 
----
+```bash
+# Have a fresh "Goldfish" session audit the implementation against the written spec
+claude -p "Compare src/rover_telemetry/lidar.py and tests/test_lidar.py against specs/lidar_filter.md. List any missing edge cases or spec deviations."
 
-## Comparing AI Development Tools
+# Pipe a failing pytest run or git diff directly into Claude Code
+uv run pytest | claude -p "Explain why this test failed and propose the minimal fix"
 
-| Feature | GitHub Copilot | Cursor | Claude Code | Codex | Grok Build |
-|---------|----------------|--------|-------------|-------|------------|
-| **Primary interface** | Editor + GitHub | AI IDE (VS Code fork) | Terminal agent | Terminal agent (+ cloud) | Terminal / agent UI |
-| **Inline completion** | Excellent | Excellent | Agent-first | Varies | Agent-first |
-| **Multi-file agents** | Yes (Agent mode) | Yes | Yes | Yes | Yes |
-| **Runs shell commands** | Via agent / CLI | Via agent features | Yes | Yes | Yes |
-| **GitHub-native workflows** | Strong | Basic | Strong via CLI | Varies | Varies |
-| **Learning curve** | Low | Low | Medium | Medium | Medium |
-| **Typical access model** | Subscription (Free for students) | Subscription | Plan / API (Anthropic) | OpenAI / ChatGPT plans | xAI / Grok product |
+# Audit uncommitted changes before opening a Pull Request
+git diff | claude -p "Review this diff for subtle bugs, security issues, or missing type hints"
+```
 
 ---
 
@@ -381,35 +269,36 @@ Always tell the agent to **run** your tools (`uv run ruff check . && uv run pyte
 
 ### 1. Read Every Line Before You Commit
 Never merge code you haven't read and understood. Check for:
-- **Logic bugs:** Does it actually solve the problem, or did it just make the test pass by deleting the assertion? (Yes, agents sometimes try that!)
+- **Logic & test-cheating bugs:** Did the agent actually fix the bug, or did it just weaken the `assert` in `tests/` so `pytest` turned green? (Yes, agents try that!)
 - **Security holes:** SQL injection, hardcoded secrets, missing auth checks, path traversal.
 - **Performance traps:** Loading a 2 GB dataset into RAM three times inside a loop "for simplicity."
 - **Hallucinated APIs:** Inventing a flag or method that existed three versions ago—or never existed at all.
 
-### 2. Write Prompts Like Mini-Specs
+### 2. Write Prompts Like Mini-Specs (Even for Single Functions)
+Even when you're just asking for a quick helper function, give the Elephant clear constraints instead of making the Goldfish guess:
 
-**Weak prompt (guaranteed mystery meat):**
+**Weak prompt (vague vibe coding—guaranteed mystery meat):**
 ```text
 Write a sensor filter function
 ```
 
-**Strong prompt (clear inputs, outputs, and constraints):**
+**Strong prompt (mini-spec—clear signature, constraints, and error behavior):**
 ```text
 Write a Python function `filter_lidar_ranges(ranges: list[float], min_m: float = 0.1, max_m: float = 30.0) -> list[float]`
 that filters out NaN/inf values and readings outside [min_m, max_m].
-Include type hints, a short docstring with examples, and raises ValueError if min_m >= max_m.
+Include type hints, a short docstring with examples, and raise ValueError if min_m >= max_m.
 Format for Ruff.
 ```
 
-### 3. Work in Small, Verifiable Steps
-Instead of asking an agent to build an entire app in one giant prompt:
-1. Ask for the data model first → review it.
-2. Ask for the core logic function → run `pytest`.
-3. Ask for the API endpoint or CLI wrapper → test again.
-4. Commit after each green step (`git commit`) so you always have a clean save point to roll back to.
+### 3. Work in Small, Verifiable Commits
+Instead of asking an agent to build an entire application in one giant prompt:
+1. Write/update the spec in `specs/` → review it.
+2. Implement the data model & core logic → run `uv run pytest`.
+3. Add the FastAPI route or CLI command → test again.
+4. Commit after each green step (`git commit`) so you always have a clean rollback point.
 
 ### 4. Use AI as a Tutor, Not a Crutch
-If an assistant writes a clever list comprehension or async context manager you don't recognize, pause and ask:
+If an agent writes a clever `@contextlib.asynccontextmanager` or `dataclass(slots=True)` pattern you don't recognize, pause and ask:
 ```text
 Explain how this function works step by step.
 Why use this pattern instead of X? What are the trade-offs?
@@ -417,7 +306,7 @@ Why use this pattern instead of X? What are the trade-offs?
 If you can't explain the code in a code review or an interview, you don't own it yet.
 
 ### 5. Never Paste Secrets into Prompts
-Never paste into any chat or agent prompt:
+Never paste into any chat or agent prompt (and add `.env` to `.gitignore` so terminal agents don't commit it):
 - API keys, AWS credentials, tokens, or passwords
 - Private customer or student data
 - `.env` files or production database connection strings
@@ -433,12 +322,13 @@ API_KEY = os.environ["API_KEY"]
 
 If an AI generates `API_KEY = "sk-..."` hardcoded in a Python file, delete it on sight!
 
-### 6. Always Run the Verification Trio Yourself
-Even if a terminal agent claims *"All tests passed!"*, run these three commands yourself before pushing:
+### 6. Always Run the Verification Quartet Yourself
+Even if a terminal agent claims *"All tests passed!"*, run these commands yourself before pushing:
 
 ```bash
 uv run ruff check .
 uv run ruff format --check .
+uv run ty check
 uv run pytest
 ```
 
@@ -446,69 +336,30 @@ Thirty seconds of verification beats explaining a broken `main` branch to your t
 
 ---
 
-## Practical Example: Building a Feature with a Terminal Agent
-
-Here is how a real workflow looks using Claude Code, Codex, or Grok Build:
-
-**Step 1 — Plan first (don't let it start editing blindly):**
-```text
-Help me plan a small user authentication module for our FastAPI app.
-List the components and implementation order. We use uv, pytest, and Ruff.
-```
-
-**Step 2 — Implement the core logic:**
-```text
-Create a user model, password hashing helpers, and JWT issue/verify functions in src/myapp/auth.py.
-```
-
-**Step 3 — Lock it down with tests:**
-```text
-Generate pytest tests in tests/test_auth.py covering happy paths, wrong passwords, and expired JWTs.
-```
-
-**Step 4 — Run the quality gauntlet:**
-```text
-Run uv run ruff check ., uv run ruff format --check ., and uv run pytest. Fix anything that fails.
-```
-
-**Step 5 — Adversarial review:**
-```text
-Review src/myapp/auth.py for security issues, timing attacks, or missing edge cases.
-```
-
-Then **you** read `git diff` line by line. Auth, payments, and hardware control loops are where "confident-sounding wrong code" hurts the most.
-
----
-
 ## Quick Reference
 
 ```bash
-# GitHub Copilot (VS Code)
-# - Install GitHub Copilot + Copilot Chat extensions
-# - Tab to accept ghost text; open Chat / Agent mode for larger tasks
-
-# Cursor
-# Cmd/Ctrl+K  inline edit diff
-# Cmd/Ctrl+L  chat with codebase context
-
-# Claude Code
+# Install Claude Code (native installer)
 curl -fsSL https://claude.ai/install.sh | bash
+claude --version
+
+# Start an interactive Claude Code session in your repo root
+cd myproject
 claude
-claude "Implement X and add pytest tests"
 
-# OpenAI Codex CLI
-# see https://github.com/openai/codex and https://openai.com/codex/
-codex
-codex "Implement X and add pytest tests"
+# Inside Claude Code (Spec-Driven Workflow):
+#   /init          -> Generate a starter CLAUDE.md for your repo
+#   Shift+Tab      -> Toggle Plan Mode to co-write specs/<feature>.md before coding
+#   /clear         -> Reset the "Goldfish" context window between spec & implementation
 
-# Grok Build
-curl -fsSL https://x.ai/cli/install.sh | bash
-grok
-# Ask the agent to run: uv run ruff check . && uv run pytest
+# One-shot & piped terminal commands
+claude -p "Implement specs/lidar_filter.md and verify with pytest, ruff, and ty"
+git diff | claude -p "Review this diff against specs/lidar_filter.md"
 
 # The Golden Rule — Always run these yourself before git commit:
 uv run ruff check .
 uv run ruff format --check .
+uv run ty check
 uv run pytest
 ```
 

@@ -132,8 +132,8 @@ flowchart TD
 
 11. [LLMs and AI-Powered Development](./11-llms.md)
     - AI in Python Development & How LLMs Use Python as a Scripting Language
-    - GitHub Copilot, Cursor, Claude Code, Codex, and Grok Build
-    - Best Practices & Guardrails with AI Tools
+    - The Elephant–Goldfish Model & Spec-Driven Development (SDD)
+    - AI Coding Tools Overview & Deep Dive into Claude Code with Specs
 
 12. [Database Libraries](./12-database-libraries.md)
     - DBAPI, SQLAlchemy, and SQLModel Compared
@@ -141,9 +141,9 @@ flowchart TD
     - Migrations with Alembic
 
 13. [REST APIs with FastAPI](./13-fastapi.md)
-    - Building Type-Safe APIs with FastAPI
-    - Pydantic Models and Automatic Validation
-    - Automatic OpenAPI Documentation
+    - Building Type-Safe APIs with FastAPI & SQLModel
+    - Automatic OpenAPI Documentation & Testing with `TestClient`
+    - HTTP Client Libraries (`requests` and `httpx` with HTTP/2)
 
 14. [AWS Lambda with Python](./14-aws-lambda.md)
     - Serverless Python with AWS Lambda
@@ -156,9 +156,9 @@ flowchart TD
     - Combining Typer and Rich
 
 16. [Putting It All Together](./16-putting-it-together.md)
-    - Creating a Complete Project from Scratch
-    - Using Cookiecutter Templates
-    - Setting Up a CI/CD Pipeline & Publishing to GitHub
+    - Bootstrapping a Complete Project with One AI Agent Prompt
+    - Creating a Project from Scratch (`uv`, `pyproject.toml`, `Makefile`, `pre-commit`)
+    - Using Cookiecutter Templates & Publishing with GitHub Actions CI/CD
 
 ---
 

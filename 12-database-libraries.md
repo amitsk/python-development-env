@@ -4,13 +4,9 @@
 
 ## Database Access in Python (Graduating from `data.json`)
 
-Every hackathon project starts the same way: *"Let's just save the data in a dictionary or a `data.json` file for now!"*
+Every hackathon project starts the same way: *"Let's just save the data in a `data.json` file for now!"* That works until two requests write at the same time and corrupt the file, or your robot logs 50,000 telemetry rows and grinds to a halt re-parsing a 100 MB JSON blob.
 
-That works for about two hours—until two requests write to `data.json` at the same time and corrupt the file, or your robot logs 50,000 telemetry rows and your script grinds to a halt re-parsing a 100 MB JSON blob on every loop.
-
-Eventually, every real application needs a database. And Python's database story isn't a single library; it's a **four-layer stack**, ranging from *"I will write the raw SQL strings myself, thank you"* all the way up to *"Please map this Python class to a database table AND validate incoming API JSON automatically."*
-
-Knowing which layer to pick is how you avoid bringing an enterprise ORM to a 30-line sensor-logging script—or writing 400 lines of raw `sqlite3` tuple-unpacking for a multi-table web app.
+Python's database ecosystem is a **four-layer stack**, ranging from raw SQL strings to unified ORM + Pydantic validation models:
 
 ```mermaid
 flowchart BT
@@ -22,222 +18,73 @@ flowchart BT
     L1 --> L2 --> L3 --> L4
 ```
 
-### The Four Levels of Abstraction
-
 | Level | Representative tool | What you write |
 |---|---|---|
 | Raw SQL (DBAPI) | `sqlite3`, `psycopg`, `pymysql` | Plain SQL strings + Python tuples |
-| SQL abstraction / query builder | SQLAlchemy Core | Python expressions that compile to SQL |
-| ORM | SQLAlchemy ORM | Python classes and method calls |
-| Type-safe ORM + validation | SQLModel | One model class used for DB and API |
+| SQL abstraction / query builder | SQLAlchemy Core | Composable Python expressions that compile to SQL |
+| ORM | SQLAlchemy ORM | Mapped Python classes (`DeclarativeBase`, `Mapped[T]`) |
+| Type-safe ORM + validation | SQLModel | One class acting as both DB table and Pydantic schema |
 
-**DBAPI** is the lowest level — the standard interface defined by PEP 249 that every Python database driver implements. You write SQL yourself and get back raw tuples. It is the right choice when you need maximum control, have no dependencies to spare, or are learning SQL.
-
-**SQLAlchemy Core** sits one level up. You describe your schema in Python and build queries using an expression language that generates SQL for you. You retain full control over the SQL being produced, but Python does the string-building and parameterization work.
-
-**SQLAlchemy ORM** lets you map Python classes to database tables and write queries in terms of objects and relationships. It handles the translation to SQL, tracks changes to objects, and manages transactions. This is the most common choice for production web applications.
-
-**SQLModel** layers Pydantic's validation model on top of SQLAlchemy ORM. A single class declaration is both a database table and a Pydantic schema — which means the same object validates incoming API requests and maps to database rows. This is particularly compelling when building FastAPI applications, which is not a coincidence.
-
-### Other Options Worth Knowing
-
-These are not the main path in this chapter, but they exist and you will see them in the wild:
-
-- **[Tortoise ORM](https://tortoise.github.io/)** — a Django-inspired async ORM. A reasonable choice for async-first apps that are not already on FastAPI/SQLModel.
-- **[Peewee](https://peewee-orm.com/)** — a small, expressive ORM with few dependencies. Fine for scripts and tools where SQLAlchemy feels like bringing a moving van to pick up groceries.
-- **[databases](https://www.encode.io/databases/)** (encode) — an older async query layer over SQLAlchemy Core. You will still find it in older tutorials; it is not the current default recommendation for new async work. Prefer SQLAlchemy's own `AsyncEngine` / `AsyncSession`, or an async ORM, instead.
-
-For PostgreSQL specifically, the current driver package is **[psycopg](https://www.psycopg.org/)** (version 3). The older package name **psycopg2** still appears in plenty of docs, Stack Overflow answers, and connection strings. Same family, different generation.
+*(Other options you may see in the wild include [Tortoise ORM](https://tortoise.github.io/) for Django-style async and [Peewee](https://peewee-orm.com/) for lightweight scripts. For PostgreSQL, use modern **[psycopg](https://www.psycopg.org/)** v3—`uv add "psycopg[binary]"`—rather than legacy `psycopg2`.)*
 
 ---
 
-## DBAPI — The Foundation
+## 1. DBAPI (`sqlite3`) — The Standard Foundation
 
-### PEP 249 and the Standard Interface
+[PEP 249 (DBAPI 2.0)](https://peps.python.org/pep-0249/) defines the standard interface every Python database driver follows (`connect()`, `cursor()`, `execute()`, `fetchone()`/`fetchall()`, `commit()`, `rollback()`). Python includes `sqlite3` in the standard library—zero dependencies required.
 
-[PEP 249](https://peps.python.org/pep-0249/) defines the standard interface that all Python database drivers must follow. Whether you are connecting to SQLite, PostgreSQL, MySQL, or any other database, the calls look the same:
+### `sqlite3` with Context Managers and Parameterized Queries
 
-- `connect()` — open a connection
-- `connection.cursor()` — create a cursor to execute statements
-- `cursor.execute(sql, params)` — run a query
-- `cursor.fetchone()` / `cursor.fetchall()` — retrieve results
-- `connection.commit()` / `connection.rollback()` — manage transactions
-
-This means that if you learn DBAPI with `sqlite3`, you already understand the basic shape of `psycopg` (PostgreSQL) and `pymysql` (MySQL). The SQL dialect changes. The Python choreography does not.
-
-### sqlite3 — No Installation Required
-
-Python ships with `sqlite3` in the standard library. It is an excellent way to learn DBAPI concepts, and it is genuinely useful for small applications, scripts, and prototypes. A database that lives in a file (or in memory) is a gift when you do not want to start a server just to store three rows.
-
-```python
-import sqlite3
-
-# Open a connection (creates the file if it doesn't exist)
-conn = sqlite3.connect("users.db")
-cursor = conn.cursor()
-
-# Create a table
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id    INTEGER PRIMARY KEY AUTOINCREMENT,
-        name  TEXT    NOT NULL,
-        email TEXT    NOT NULL UNIQUE,
-        age   INTEGER
-    )
-""")
-conn.commit()
-
-# Insert a row
-cursor.execute(
-    "INSERT INTO users (name, email, age) VALUES (?, ?, ?)",
-    ("Alice", "alice@example.com", 30),
-)
-conn.commit()
-
-# Fetch all rows
-cursor.execute("SELECT * FROM users")
-rows = cursor.fetchall()
-for row in rows:
-    print(row)  # (1, 'Alice', 'alice@example.com', 30)
-
-# Fetch one row
-cursor.execute("SELECT * FROM users WHERE id = ?", (1,))
-row = cursor.fetchone()
-print(row)
-
-conn.close()
-```
-
-### Parameterized Queries (How Not to Get Bobby-Tables'd)
-
-Notice the `?` placeholders in the queries above. This is **parameterized query syntax**, and it is the single most important security habit you will ever learn when working with databases.
-
-> [!CAUTION]
-> **Never build SQL strings with f-strings or `+` concatenation on user input!**
-> That is how **SQL Injection** happens—where a clever user types `' OR '1'='1` into a login box and tricks your database into dumping every row in the table.
-
-**❌ DANGEROUS — SQL Injection Vulnerability:**
-
-```python
-name = input("Enter a name: ")
-cursor.execute(f"SELECT * FROM users WHERE name = '{name}'")
-# A user who enters:  ' OR '1'='1
-# turns the query into:  SELECT * FROM users WHERE name = '' OR '1'='1'
-# which evaluates to TRUE for every single row in the users table!
-```
-
-**✅ SAFE — Parameterized Queries:**
-
-```python
-name = input("Enter a name: ")
-cursor.execute("SELECT * FROM users WHERE name = ?", (name,))
-```
-
-With `?` placeholders, the database driver sends the SQL command structure and the data values **separately**. Even if the user's name is `'; DROP TABLE users; --`, the database treats it as a harmless literal string, never as executable SQL!
-
-*(Note: `sqlite3` uses `?` as the placeholder, while PostgreSQL's `psycopg` uses `%s`—even with `%s`, you still pass the tuple as the second argument to `cursor.execute(sql, (val,))`, never with Python's `%` string operator!)*
-
-### Commit and Rollback
-
-Database operations are grouped into transactions. Changes made with `execute()` are not persisted until you call `commit()`. If something goes wrong, `rollback()` undoes all changes since the last commit. That is the whole point of a transaction: either both inserts happen, or neither does, and you do not end up with Bob in the table and Carol as a regret.
-
-```python
-conn = sqlite3.connect("users.db")
-cursor = conn.cursor()
-
-try:
-    cursor.execute(
-        "INSERT INTO users (name, email) VALUES (?, ?)",
-        ("Bob", "bob@example.com"),
-    )
-    cursor.execute(
-        "INSERT INTO users (name, email) VALUES (?, ?)",
-        ("Carol", "carol@example.com"),
-    )
-    conn.commit()  # Persist both inserts together
-    print("Both users inserted successfully")
-except Exception as e:
-    conn.rollback()  # Undo both inserts if either failed
-    print(f"Transaction failed, rolled back: {e}")
-finally:
-    conn.close()
-```
-
-### Context Manager Usage
-
-Python's `sqlite3` module supports the context manager protocol. Using `with conn:` automatically commits the transaction when the block exits cleanly, or rolls it back if an exception is raised. This is the recommended pattern, because the alternative is remembering `commit()` on every happy path.
+Using `with sqlite3.connect(...) as conn:` automatically commits on clean exit or rolls back if an exception is raised:
 
 ```python
 import sqlite3
 
 with sqlite3.connect("users.db") as conn:
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id    INTEGER PRIMARY KEY AUTOINCREMENT,
+            name  TEXT    NOT NULL,
+            email TEXT    NOT NULL UNIQUE,
+            age   INTEGER
+        )
+    """)
+
+    # ✅ SAFE: Parameterized query with `?` placeholders
     conn.execute(
         "INSERT INTO users (name, email, age) VALUES (?, ?, ?)",
-        ("Dave", "dave@example.com", 25),
+        ("Alice", "alice@example.com", 30),
     )
-    # Automatically committed on exit; rolled back on exception
+
+    cursor = conn.execute("SELECT id, name, email, age FROM users WHERE age >= ?", (25,))
+    for row in cursor.fetchall():
+        print(row)  # (1, 'Alice', 'alice@example.com', 30)
 ```
 
-### Limitations of Raw DBAPI
-
-Raw DBAPI works well, but it has real limitations as a project grows:
-
-- **No type safety.** Rows come back as plain tuples. Accessing `row[2]` instead of `row["email"]` is easy to get wrong and impossible for a type checker to catch.
-- **Manual row mapping.** You must write code to convert tuples into objects yourself.
-- **No schema management.** Nothing prevents you from making a typo in a column name until the query actually runs.
-- **Repetitive boilerplate.** INSERT, UPDATE, and SELECT queries for a ten-column table require writing out every column name repeatedly.
-
-These limitations are exactly what the higher-level tools solve. They do not make SQL go away. They make it less of a string-processing hobby.
+> [!CAUTION]
+> **Never build SQL with f-strings (`f"SELECT * FROM users WHERE name = '{name}'"`).**
+> That opens a **SQL Injection** hole where an input like `' OR '1'='1` dumps your entire table. Always pass values as a tuple to `execute(sql, params)` (`?` in `sqlite3`, `%s` in `psycopg`).
 
 ---
 
-## SQLAlchemy
+## 2. SQLAlchemy (Core & ORM)
 
-- Website: [https://www.sqlalchemy.org](https://www.sqlalchemy.org)
-- GitHub: [https://github.com/sqlalchemy/sqlalchemy](https://github.com/sqlalchemy/sqlalchemy)
-
-SQLAlchemy is the most widely used Python SQL toolkit and ORM. It is the foundation that SQLModel, Alembic, and many other tools build on. If you work on Python backend applications, you will encounter SQLAlchemy. Resisting it is a lifestyle choice, not a requirement.
-
-The library is structured in two distinct layers that you can use independently or together:
-
-- **SQLAlchemy Core** — the SQL Expression Language. Provides Python objects that represent tables, columns, and SQL constructs. Gives you full control over the SQL that gets generated while handling parameterization and escaping for you.
-- **SQLAlchemy ORM** — the Object Relational Mapper. Builds on Core and lets you work with mapped Python classes and objects instead of tables and rows directly.
-
-### Installation
+[SQLAlchemy](https://www.sqlalchemy.org) ([GitHub](https://github.com/sqlalchemy/sqlalchemy)) is the backbone of Python's database ecosystem:
 
 ```bash
 uv add sqlalchemy
 ```
 
-For PostgreSQL, add the current driver as well:
+### SQLAlchemy Core (Composable SQL Expressions)
 
-```bash
-uv add "psycopg[binary]"
-```
-
-You may still see `psycopg2` in older projects and connection URLs. New code should use `psycopg` (v3).
-
----
-
-### SQLAlchemy Core
-
-Core is the right choice when you want tight control over your SQL — for example, when writing complex queries with multiple joins, window functions, or database-specific features — while still getting the benefits of Python's type system and composable query construction.
-
-#### Defining Tables and Creating an Engine
+Core lets you build type-checked, parameterized SQL queries programmatically without full ORM object tracking—ideal for analytics, complex joins, or fixed schemas:
 
 ```python
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, insert, select
+from sqlalchemy import Column, Integer, MetaData, String, Table, create_engine, insert, select
 
-# Create an engine. The connection URL specifies the database type and location.
-# For SQLite: "sqlite:///mydb.db"
-# For PostgreSQL with psycopg (v3): "postgresql+psycopg://user:password@localhost/dbname"
-# Older tutorials often show "postgresql+psycopg2://..." — that is the previous driver.
-engine = create_engine("sqlite:///core_example.db", echo=True)
-
-# MetaData holds all table definitions
+engine = create_engine("sqlite:///core_example.db")
 metadata = MetaData()
 
-# Define the users table
 users_table = Table(
     "users",
     metadata,
@@ -246,69 +93,26 @@ users_table = Table(
     Column("email", String(200), nullable=False, unique=True),
     Column("age", Integer),
 )
-
-# Create all tables that have been defined on this MetaData object
 metadata.create_all(engine)
-```
 
-`echo=True` prints the generated SQL. Leave it on while you are learning; turn it off before you paste logs into a slide deck.
-
-#### Executing Queries with Core
-
-```python
-from sqlalchemy import update, delete
-
-# Insert rows
-with engine.connect() as conn:
+with engine.begin() as conn:  # Auto-commits at block end
     conn.execute(
         insert(users_table),
-        [
-            {"name": "Alice", "email": "alice@example.com", "age": 30},
-            {"name": "Bob", "email": "bob@example.com", "age": 25},
-        ],
+        [{"name": "Alice", "email": "alice@example.com", "age": 30}],
     )
-    conn.commit()
-
-# Select rows
-with engine.connect() as conn:
-    result = conn.execute(
-        select(users_table).where(users_table.c.age >= 25).order_by(users_table.c.name)
-    )
-    for row in result:
-        print(row.name, row.email, row.age)
-
-# Update rows
-with engine.connect() as conn:
-    conn.execute(
-        update(users_table)
-        .where(users_table.c.email == "alice@example.com")
-        .values(age=31)
-    )
-    conn.commit()
-
-# Delete rows
-with engine.connect() as conn:
-    conn.execute(
-        delete(users_table).where(users_table.c.name == "Bob")
-    )
-    conn.commit()
+    rows = conn.execute(select(users_table).where(users_table.c.age >= 25)).all()
+    print(rows)
 ```
 
-Core queries are Python expressions. They are composable — you can build a base query and add `.where()`, `.order_by()`, and `.limit()` clauses conditionally without string concatenation. That is the entire argument against building SQL with `f"{where_clause}"` in a loop.
+### SQLAlchemy 2.0 ORM (`DeclarativeBase`, `Session`, Relationships)
 
----
-
-### SQLAlchemy ORM
-
-The ORM maps Python classes to database tables. Each class is a model, each instance is a row. The ORM tracks changes to objects and generates the corresponding INSERT, UPDATE, and DELETE statements. You mutate Python objects; the database finds out at `commit()`.
-
-#### Defining ORM Models
+The ORM maps Python classes to tables using `Mapped[T]` annotations so `ty` and `mypy` can type-check your database attributes:
 
 ```python
-from sqlalchemy import create_engine, String, Integer, ForeignKey
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, Session
+from sqlalchemy import ForeignKey, String, create_engine, select
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
 
-engine = create_engine("sqlite:///orm_example.db", echo=True)
+engine = create_engine("sqlite:///orm_example.db")
 
 
 class Base(DeclarativeBase):
@@ -318,139 +122,40 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    email: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
-    age: Mapped[int | None] = mapped_column(Integer, nullable=True)
-
-    # One user has many posts
-    posts: Mapped[list["Post"]] = relationship("Post", back_populates="author")
-
-    def __repr__(self) -> str:
-        return f"User(id={self.id!r}, name={self.name!r}, email={self.email!r})"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    email: Mapped[str] = mapped_column(String(200), unique=True)
+    posts: Mapped[list["Post"]] = relationship(back_populates="author")
 
 
 class Post(Base):
     __tablename__ = "posts"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    title: Mapped[str] = mapped_column(String(200), nullable=False)
-    body: Mapped[str] = mapped_column(String, nullable=False)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-
-    # Many posts belong to one user
-    author: Mapped[User] = relationship("User", back_populates="posts")
-
-    def __repr__(self) -> str:
-        return f"Post(id={self.id!r}, title={self.title!r})"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(200))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    author: Mapped[User] = relationship(back_populates="posts")
 
 
-# Create all tables
 Base.metadata.create_all(engine)
-```
 
-The `Mapped[T]` annotation from modern SQLAlchemy (2.0+) makes the ORM fully type-checkable. A type checker knows that `user.name` is a `str` and `user.age` is `int | None`. That is not decorative. It is how `ty` notices you assigned a list to `age` before the database does.
-
-#### Session Management and Full CRUD
-
-The ORM uses a `Session` to manage the unit of work. Think of a session as a staging area: you add objects to it, modify them, and then commit to flush all changes to the database in a single transaction.
-
-```python
-from sqlalchemy.orm import Session
-from sqlalchemy import select
-
-# --- CREATE ---
 with Session(engine) as session:
-    alice = User(name="Alice", email="alice@example.com", age=30)
-    bob = User(name="Bob", email="bob@example.com", age=25)
-    session.add_all([alice, bob])
+    alice = User(name="Alice", email="alice@example.com")
+    post = Post(title="Hello ORM", author=alice)
+    session.add_all([alice, post])
     session.commit()
 
-    # After commit, the ORM populates auto-generated fields like `id`
-    print(f"Alice's id: {alice.id}")
-
-# --- READ ---
-with Session(engine) as session:
-    # Fetch a single user by primary key
-    user = session.get(User, 1)
-    print(user)
-
-    # Query with filtering
-    statement = select(User).where(User.age >= 25).order_by(User.name)
-    results = session.execute(statement).scalars().all()
-    for u in results:
-        print(u.name, u.email)
-
-    # Load a user along with their posts (eager loading)
-    from sqlalchemy.orm import selectinload
-    statement = select(User).options(selectinload(User.posts))
-    users_with_posts = session.execute(statement).scalars().all()
-
-# --- UPDATE ---
-with Session(engine) as session:
-    user = session.get(User, 1)
+    # Query with relationships
+    user = session.scalar(select(User).where(User.email == "alice@example.com"))
     if user:
-        user.age = 31         # Modify the object
-        session.commit()      # ORM generates the UPDATE statement
-
-# --- DELETE ---
-with Session(engine) as session:
-    user = session.get(User, 2)
-    if user:
-        session.delete(user)
-        session.commit()
+        print(user.name, [p.title for p in user.posts])
 ```
-
-#### Relationships in Practice
-
-```python
-with Session(engine) as session:
-    # Create a user and a post in one transaction
-    alice = session.get(User, 1)
-    post = Post(
-        title="Getting Started with SQLAlchemy",
-        body="SQLAlchemy is the most widely used Python SQL toolkit...",
-        author=alice,  # Set the relationship directly
-    )
-    session.add(post)
-    session.commit()
-
-    # Access the relationship
-    print(alice.posts)   # [Post(id=1, title='Getting Started with SQLAlchemy')]
-    print(post.author)   # User(id=1, name='Alice', email='alice@example.com')
-```
-
-Setting `author=alice` is more pleasant than remembering the foreign key column name at 11pm. The ORM still writes that column. You just do not have to.
-
-### When to Use Core vs. ORM
-
-**Use Core when:**
-- You need to write complex queries (window functions, CTEs, raw SQL fragments)
-- You are working with an existing database where the schema is fixed
-- You want full visibility into the SQL being executed
-- Performance is critical and you need to avoid ORM overhead
-
-**Use ORM when:**
-- You are building a new application and defining the schema yourself
-- You want to work with Python objects rather than rows and columns
-- You need relationships and lazy/eager loading
-- You want the session to track and batch changes automatically
-
-In practice, you can mix both layers in the same project. The ORM builds on Core, so you can drop down to Core expressions inside ORM queries at any time. That is the usual grown-up answer: start with the ORM, keep Core in your pocket.
 
 ---
 
-## SQLModel — Type-Safe ORM for Modern Python
+## 3. SQLModel — One Class for Database + Pydantic Validation
 
-- Website: [https://sqlmodel.tiangolo.com](https://sqlmodel.tiangolo.com)
-- GitHub: [https://github.com/tiangolo/sqlmodel](https://github.com/tiangolo/sqlmodel)
-
-SQLModel was created by Sebastián Ramírez, the same developer who built FastAPI. The motivation is straightforward: in a typical FastAPI application, you end up defining two nearly identical classes — a Pydantic model for request/response validation and a SQLAlchemy model for the database table. SQLModel eliminates that duplication.
-
-A SQLModel class is simultaneously:
-
-- A **SQLAlchemy ORM model** — it can be used as a database table
-- A **Pydantic model** — it can validate and serialize JSON data
+[SQLModel](https://sqlmodel.tiangolo.com) ([GitHub](https://github.com/tiangolo/sqlmodel)), created by the author of FastAPI, combines **SQLAlchemy ORM** and **Pydantic** so you don't have to duplicate classes for database tables and API schemas.
 
 ```mermaid
 flowchart TB
@@ -461,50 +166,16 @@ flowchart TB
     SM --> PY
 ```
 
-This is "the best of both worlds": SQLAlchemy's production-proven database layer with Pydantic's ergonomic type safety and validation. The punchline, which the next chapter will not even try to hide, is that FastAPI and SQLModel were designed to share a wardrobe.
-
-### Installation
-
 ```bash
 uv add sqlmodel
 ```
 
-### Defining a Model
+### Complete SQLModel CRUD Example
 
 ```python
-from sqlmodel import SQLModel, Field
+from sqlmodel import Field, Session, SQLModel, create_engine, select
 
-class Hero(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
-    secret_name: str
-    age: int | None = Field(default=None, index=True)
-```
-
-The `table=True` argument tells SQLModel that this class maps to a database table. Without it, the class is a plain Pydantic model (useful for defining request/response shapes that are not stored in the database). One class, two jobs. That is the whole product pitch.
-
-### Creating Tables
-
-```python
-from sqlmodel import create_engine
-
-DATABASE_URL = "sqlite:///heroes.db"
-engine = create_engine(DATABASE_URL, echo=True)
-
-def create_db_and_tables() -> None:
-    SQLModel.metadata.create_all(engine)
-
-if __name__ == "__main__":
-    create_db_and_tables()
-```
-
-### Full CRUD Example
-
-```python
-from sqlmodel import SQLModel, Field, Session, select, create_engine
-
-DATABASE_URL = "sqlite:///heroes.db"
-engine = create_engine(DATABASE_URL, echo=False)
+engine = create_engine("sqlite:///heroes.db")
 
 
 class Hero(SQLModel, table=True):
@@ -514,38 +185,26 @@ class Hero(SQLModel, table=True):
     age: int | None = Field(default=None, index=True)
 
 
-def create_db_and_tables() -> None:
+def init_db() -> None:
     SQLModel.metadata.create_all(engine)
 
 
-# --- CREATE ---
 def create_hero(hero: Hero) -> Hero:
     with Session(engine) as session:
         session.add(hero)
         session.commit()
-        session.refresh(hero)  # Reload from DB to get generated id
+        session.refresh(hero)
         return hero
 
 
-# --- READ ---
-def get_heroes() -> list[Hero]:
+def list_heroes(min_age: int | None = None) -> list[Hero]:
     with Session(engine) as session:
-        statement = select(Hero)
-        return session.exec(statement).all()
+        stmt = select(Hero)
+        if min_age is not None:
+            stmt = stmt.where(Hero.age >= min_age)  # type: ignore[arg-type]
+        return list(session.exec(stmt).all())
 
 
-def get_hero(hero_id: int) -> Hero | None:
-    with Session(engine) as session:
-        return session.get(Hero, hero_id)
-
-
-def get_heroes_by_age(min_age: int) -> list[Hero]:
-    with Session(engine) as session:
-        statement = select(Hero).where(Hero.age >= min_age)
-        return session.exec(statement).all()
-
-
-# --- UPDATE ---
 def update_hero_age(hero_id: int, new_age: int) -> Hero | None:
     with Session(engine) as session:
         hero = session.get(Hero, hero_id)
@@ -558,7 +217,6 @@ def update_hero_age(hero_id: int, new_age: int) -> Hero | None:
         return hero
 
 
-# --- DELETE ---
 def delete_hero(hero_id: int) -> bool:
     with Session(engine) as session:
         hero = session.get(Hero, hero_id)
@@ -567,253 +225,62 @@ def delete_hero(hero_id: int) -> bool:
         session.delete(hero)
         session.commit()
         return True
-
-
-# --- Main ---
-if __name__ == "__main__":
-    create_db_and_tables()
-
-    # Create heroes
-    hero_1 = create_hero(Hero(name="Deadpond", secret_name="Dive Wilson"))
-    hero_2 = create_hero(Hero(name="Spider-Boy", secret_name="Pedro Parqueador"))
-    hero_3 = create_hero(Hero(name="Rusty-Man", secret_name="Tommy Sharp", age=48))
-
-    print("All heroes:", get_heroes())
-    print("Hero 1:", get_hero(hero_1.id))
-    print("Heroes aged 40+:", get_heroes_by_age(40))
-
-    # Update
-    updated = update_hero_age(hero_3.id, 49)
-    print("Updated hero:", updated)
-
-    # Delete
-    deleted = delete_hero(hero_2.id)
-    print("Deleted hero_2:", deleted)
-    print("Remaining heroes:", get_heroes())
 ```
 
-Yes, the sample data is still superheroes. SQLModel's docs started it; we are not going to be the ones who switch to `InvoiceLineItem`.
-
-### The Key Advantage: One Class, Two Roles
-
-The real power of SQLModel becomes apparent in a FastAPI application. Consider this pattern:
-
-```python
-from sqlmodel import SQLModel, Field, Session, select
-from fastapi import FastAPI, HTTPException
-
-app = FastAPI()
-
-
-# This class is the DB table AND the Pydantic schema
-class Hero(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    name: str
-    secret_name: str
-    age: int | None = None
-
-
-# A separate schema for creation (no id — it's auto-generated)
-class HeroCreate(SQLModel):
-    name: str
-    secret_name: str
-    age: int | None = None
-
-
-# A separate schema for responses (id is always present)
-class HeroRead(SQLModel):
-    id: int
-    name: str
-    age: int | None = None
-
-
-@app.post("/heroes/", response_model=HeroRead)
-def create_hero(hero: HeroCreate) -> Hero:
-    # HeroCreate validates the incoming JSON
-    # Hero maps it to the database
-    db_hero = Hero.model_validate(hero)
-    with Session(engine) as session:
-        session.add(db_hero)
-        session.commit()
-        session.refresh(db_hero)
-        return db_hero
-
-
-@app.get("/heroes/", response_model=list[HeroRead])
-def read_heroes() -> list[Hero]:
-    with Session(engine) as session:
-        return session.exec(select(Hero)).all()
-
-
-@app.get("/heroes/{hero_id}", response_model=HeroRead)
-def read_hero(hero_id: int) -> Hero:
-    with Session(engine) as session:
-        hero = session.get(Hero, hero_id)
-        if not hero:
-            raise HTTPException(status_code=404, detail="Hero not found")
-        return hero
-```
-
-In a pure SQLAlchemy + Pydantic project, you would maintain three separate classes for this: a SQLAlchemy ORM model, a Pydantic `HeroCreate` schema, and a Pydantic `HeroRead` schema. SQLModel lets you start from a single `Hero` class and derive the others from it, drastically reducing boilerplate and the risk of the two definitions drifting out of sync.
-
-SQLModel and FastAPI are covered in depth in the next chapter. If you are building a FastAPI application, SQLModel is almost certainly the right database layer to use. That is the pairing. Everything else is a plot twist.
+*(With `table=True`, `Hero` maps to a database table; without `table=True`, a `SQLModel` subclass is a pure Pydantic schema—perfect for FastAPI request/response models in [Chapter 13](./13-fastapi.md)!)*
 
 ---
 
-## Alembic — Database Migrations
+## 4. Database Migrations with Alembic
 
-SQLAlchemy's `create_all()` is convenient for getting started, but it has a fundamental limitation: it only creates tables that do not yet exist. If you add a column to a model, `create_all()` will not add that column to your existing database. In a production application, you need database migrations. "Just drop the table" is a strategy, not a career.
-
-[Alembic](https://alembic.sqlalchemy.org/) is SQLAlchemy's official migration tool. It tracks the history of schema changes as a series of versioned migration scripts and can apply (upgrade) or reverse (downgrade) them.
-
-### Installation
+`create_all()` creates missing tables, but it will **not** alter existing tables when you add or rename columns later. In production, use [Alembic](https://alembic.sqlalchemy.org/) to version-control schema changes:
 
 ```bash
 uv add alembic
+uv run alembic init alembic
 ```
 
-### Initializing Alembic
+1. **Set the database URL** in `alembic.ini` (e.g., `sqlalchemy.url = sqlite:///heroes.db` or `postgresql+psycopg://user:pass@localhost/db`).
+2. **Point `alembic/env.py` at your metadata:**
+   ```python
+   from sqlmodel import SQLModel
+   import myapp.models  # Ensure models are imported so tables register!
 
-```bash
-# Initialize Alembic in your project directory
-alembic init alembic
-```
+   target_metadata = SQLModel.metadata  # Or Base.metadata for SQLAlchemy ORM
+   ```
+3. **Generate and apply migrations:**
+   ```bash
+   # Auto-generate a migration script by diffing models vs. database
+   uv run alembic revision --autogenerate -m "add hero age column"
 
-This creates:
+   # Review the generated script in alembic/versions/, then apply it:
+   uv run alembic upgrade head
 
-```
-alembic.ini          # Configuration file
-alembic/
-    env.py           # Migration environment (edit this to point at your models)
-    versions/        # Migration scripts are stored here
-```
-
-### Configuring Alembic
-
-Edit `alembic.ini` to point at your database:
-
-```ini
-# alembic.ini
-sqlalchemy.url = sqlite:///myapp.db
-```
-
-For PostgreSQL with the current driver:
-
-```ini
-sqlalchemy.url = postgresql+psycopg://user:password@localhost/dbname
-```
-
-Edit `alembic/env.py` to import your models so Alembic can detect schema changes:
-
-```python
-# alembic/env.py  (relevant section)
-from myapp.models import Base  # Import your DeclarativeBase
-target_metadata = Base.metadata
-```
-
-If you are using SQLModel, import the table models so they register on `SQLModel.metadata`, then set `target_metadata = SQLModel.metadata`.
-
-### Generating and Applying Migrations
-
-```bash
-# Generate a migration by comparing your models to the current database schema
-alembic revision --autogenerate -m "create users table"
-```
-
-Alembic creates a new file in `alembic/versions/` that looks like this:
-
-```python
-"""create users table
-
-Revision ID: a1b2c3d4e5f6
-Revises:
-Create Date: 2026-01-15 10:00:00.000000
-"""
-from alembic import op
-import sqlalchemy as sa
-
-def upgrade() -> None:
-    op.create_table(
-        "users",
-        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("name", sa.String(length=100), nullable=False),
-        sa.Column("email", sa.String(length=200), nullable=False),
-        sa.Column("age", sa.Integer(), nullable=True),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("email"),
-    )
-
-def downgrade() -> None:
-    op.drop_table("users")
-```
-
-Apply the migration:
-
-```bash
-# Apply all pending migrations
-alembic upgrade head
-
-# Roll back one migration
-alembic downgrade -1
-
-# View migration history
-alembic history --verbose
-
-# Show current database version
-alembic current
-```
-
-Always review autogenerated migrations before applying them — Alembic is good at detecting additions but can occasionally miss nuances like index renames. Treat migration scripts as code: review them, commit them to version control, and test them. Autogenerate is a draft, not a notary.
+   # Roll back one migration if needed:
+   uv run alembic downgrade -1
+   ```
 
 ---
 
-## Comparison Table
+## Comparison & When to Choose Each
 
-| | sqlite3 / DBAPI | SQLAlchemy Core | SQLAlchemy ORM | SQLModel |
+| Feature | `sqlite3` / DBAPI | SQLAlchemy Core | SQLAlchemy ORM | SQLModel |
 |---|---|---|---|---|
-| **Abstraction level** | Raw SQL | Query builder | ORM | ORM + Pydantic |
-| **Schema definition** | None (write DDL manually) | `Table` + `Column` objects | `DeclarativeBase` classes | `SQLModel` classes |
-| **Type safety** | None — rows are plain tuples | Partial — columns are typed | Full — `Mapped[T]` annotations | Full — Pydantic + SQLAlchemy types |
-| **Migrations** | Manual | Alembic | Alembic | Alembic |
-| **Bundle size / deps** | Zero (stdlib) | `sqlalchemy` only | `sqlalchemy` only | `sqlmodel` (includes SQLAlchemy + Pydantic) |
-| **Learning curve** | Low (know SQL already) | Medium | Medium–High | Low–Medium (if you know FastAPI/Pydantic) |
-| **Async support** | No | Yes (via `AsyncEngine`) | Yes (via `AsyncSession`) | Yes (via SQLAlchemy's async layer) |
-| **Best for** | Scripts, learning, zero-dep tools | Complex queries, existing schemas | Production apps, rich domain models | FastAPI apps, modern codebases |
+| **Abstraction** | Raw SQL strings | Python SQL builder | Object-Relational Mapper | ORM + Pydantic v2 |
+| **Type safety** | None (raw tuples) | Column-level | Full (`Mapped[T]`) | Full (DB + JSON validation) |
+| **Migrations** | Manual SQL | Alembic | Alembic | Alembic |
+| **Dependencies** | Zero (stdlib) | `sqlalchemy` | `sqlalchemy` | `sqlmodel` |
+| **Best for** | Small scripts, embedded local state, learning SQL | Complex analytical queries, existing fixed schemas | Large backend services with rich domain models | **FastAPI apps** & modern typed Python backends |
 
----
-
-## Which Should You Choose?
-
-**DBAPI / sqlite3** is the right choice when:
-- You are writing a small script or command-line tool that does not need external dependencies
-- You are learning SQL and want to understand what is actually happening
-- You need to embed a simple local database without adding packages
-
-**SQLAlchemy Core** is the right choice when:
-- You need to write complex queries that benefit from a programmatic query builder
-- You are working with an existing database whose schema you do not control
-- You want type-safe query construction without the object-mapping overhead of an ORM
-- You need fine-grained control over exactly what SQL is executed
-
-**SQLAlchemy ORM** is the right choice when:
-- You are building a production web application or service
-- You want to work with objects and relationships rather than rows and columns
-- You need the rich ecosystem of extensions, plugins, and examples that SQLAlchemy brings
-- You are on a team and value the clarity of well-defined model classes
-
-**SQLModel** is the right choice when:
-- You are building a FastAPI application and want one class to serve both as an API schema and a database model
-- You are starting a new modern Python project and want type safety from the database through the API layer
-- You want to reduce boilerplate and keep your model definitions as DRY as possible
-
-When in doubt, **SQLAlchemy ORM** is the safe default for a backend application. If that application uses FastAPI, switch the default to **SQLModel**. If you are still concatenating SQL strings, stop, then pick one of the above.
+- **Pick `sqlite3` (DBAPI)** for zero-dependency CLI tools, local caches, or small robotics/IoT logs.
+- **Pick SQLAlchemy Core** when you want composable, injection-safe SQL expressions without ORM object tracking.
+- **Pick SQLAlchemy ORM** for large services where database models and API schemas are intentionally separate layers.
+- **Pick SQLModel** when building FastAPI services where you want one set of type-annotated classes to power both your database and your REST endpoints.
 
 ---
 
 ## What's Next?
 
-You now have a solid foundation in Python's database ecosystem: raw SQL via DBAPI, flexible query building with SQLAlchemy Core, production-ready ORM patterns with SQLAlchemy ORM, and the type-safe integration story offered by SQLModel.
-
-The natural next step is to put that database layer to work inside a web API. In the next chapter, we will build a FastAPI application from scratch — defining routes, request and response schemas, and wiring up a SQLModel database layer so that the same model class validates API input and persists data to the database.
+Now that we can persist data cleanly with SQLModel, let's expose it over HTTP with automatic validation and interactive OpenAPI docs in [Chapter 13: REST APIs with FastAPI](./13-fastapi.md).
 
 [← Previous: LLMs](./11-llms.md) | [Back to README](./README.md) | [Next: FastAPI →](./13-fastapi.md)

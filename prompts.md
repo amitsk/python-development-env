@@ -70,13 +70,11 @@ the details in this file. The audience for the tutorial are CS students, new dev
 *** LLMs
     **** Explain what is LLMs. Benefits of LLMs and using these in python projects
     **** Explain how LLMs use Python as their own scripting language for complex tasks (Code Interpreter sandboxes, deterministic math/data analysis, programmatic tool use, and "Code as Policies" in robotics)
-    **** GitHub Copilot - https://github.com/features/copilot - IDE completions, chat, agent mode
-    **** Cursor - https://cursor.com - AI-first editor based on VS Code
-    **** Claude Code - https://github.com/anthropics/claude-code - Anthropic terminal coding agent. Native install: curl -fsSL https://claude.ai/install.sh | bash
-    **** OpenAI Codex - https://openai.com/codex/ and https://github.com/openai/codex - Codex CLI / coding agent
-    **** Grok Build - xAI terminal coding agent. Install is commonly curl -fsSL https://x.ai/cli/install.sh | bash then grok. Do not invent APIs.
+    **** Explain Spec-Driven Development (SDD) and the Elephant-Goldfish mental model (encyclopedic pre-trained knowledge like an elephant, zero persistent session/project memory like a goldfish—solved by keeping written specs and CLAUDE.md/AGENTS.md in the repo)
+    **** Concise one-sentence overview with links for AI development tools: Claude Code, GitHub Copilot & Copilot CLI, Cursor, OpenAI Codex CLI, Google Antigravity (agy), OpenCode, and Grok Build
+    **** Detailed walkthrough and examples for Claude Code (native install: curl -fsSL https://claude.ai/install.sh | bash, CLAUDE.md, writing a feature spec in specs/, implementing in a fresh session, and verification loop) tied into SDD and the Elephant-Goldfish model
     **** Tools change fast; send readers to official docs for pricing/install
-    **** Review generated code, run ruff + pytest, never paste secrets
+    **** Review generated code, run ruff + ty + pytest, never paste secrets
     **** This is product coverage, not authorship. Do not add "Generated with …" or similar.
 
 *** Database Libraries
@@ -98,6 +96,7 @@ the details in this file. The audience for the tutorial are CS students, new dev
     **** Integration with SQLModel for database-backed APIs
     **** Testing with pytest + FastAPI TestClient (httpx still used under the hood; FastAPI docs still say install httpx)
     **** Running in production: uvicorn workers, Gunicorn
+    **** HTTP client libraries: Requests (https://requests.readthedocs.io/) and HTTPX with HTTP/2 support (https://www.python-httpx.org/, uv add "httpx[http2]")
     **** Alternatives: Flask, Django REST Framework, Litestar
 
 *** AWS Lambda with Python
@@ -134,6 +133,7 @@ the details in this file. The audience for the tutorial are CS students, new dev
 
 *** Stitch it all together.
     **** Stitch it all together.
+    **** Include a copy-paste AI Agent Bootstrap Prompt to scaffold and verify the entire project in one step (uv, Ruff, ty, pytest, Makefile, pre-commit, CLAUDE.md, specs/, and GitHub Actions CI)
     **** Explain how to create a new project using uv
     **** Short explainer about cookiecutter. Point to cookiecutter github link https://github.com/amitsk/cookiecutter-python-library
     **** Walk through the cookiecutter workflow, use the cookiecutter-python-library to create a new project and run tests, linting, formatting etc.
